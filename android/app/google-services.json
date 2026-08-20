@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "647079088665",
+    "project_id": "resturent-6fec2",
+    "storage_bucket": "resturent-6fec2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:647079088665:android:fe63fdd2db6b65f17f5088",
+        "android_client_info": {
+          "package_name": "com.example.bakery"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjBBFrMtwuGio9gJnq5-GA9UXDFEbxolU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
