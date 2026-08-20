@@ -58,18 +58,11 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void updateUserRole(String userId, UserRole newRole) {
-    final idx = _allUsers.indexWhere((u) => u.id == userId);
-    if (idx != -1) {
-      _allUsers[idx] = UserModel(
-        id: _allUsers[idx].id,
-        email: _allUsers[idx].email,
-        name: _allUsers[idx].name,
-        role: newRole,
-        permissions: UserPermissions.forRole(newRole),
-        avatarUrl: _allUsers[idx].avatarUrl,
-      );
+    final index = _allUsers.indexWhere((u) => u.id == userId);
+    if (index != -1) {
+      _allUsers[index] = _allUsers[index].copyWith(role: newRole);
       if (_currentUser?.id == userId) {
-        _currentUser = _allUsers[idx];
+        _currentUser = _allUsers[index];
       }
       notifyListeners();
     }

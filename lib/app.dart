@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:get/get.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 import 'services/database_service.dart';
 import 'providers/auth_provider.dart';
 import 'providers/branding_provider.dart';
@@ -28,16 +31,24 @@ class _BakeryAppState extends State<BakeryApp> {
   @override
   void initState() {
     super.initState();
-    _authProvider = AuthProvider();
-    _brandingProvider = BrandingProvider();
-    _inventoryProvider = InventoryProvider();
-    _recipeProvider = RecipeProvider();
-    _customerProvider = CustomerProvider();
-    _orderProvider = OrderProvider();
+    _authProvider = Get.put(AuthProvider());
+    _brandingProvider = Get.put(BrandingProvider());
+    _inventoryProvider = Get.put(InventoryProvider());
+    _recipeProvider = Get.put(RecipeProvider());
+    _customerProvider = Get.put(CustomerProvider());
+    _orderProvider = Get.put(OrderProvider());
     _initFuture = _initData();
   }
 
   Future<void> _initData() async {
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    } catch (e) {
+      debugPrint("Firebase init note: $e");
+    }
+
     await DatabaseService.instance.seedInitialDataIfEmpty(
       onUsersLoaded: _authProvider.setUsers,
       onBrandingLoaded: _brandingProvider.updateBranding,
@@ -62,7 +73,7 @@ class _BakeryAppState extends State<BakeryApp> {
       child: Consumer<BrandingProvider>(
         builder: (context, brandingProvider, _) {
           final branding = brandingProvider.branding;
-          return MaterialApp(
+          return GetMaterialApp(
             title: branding.businessName,
             debugShowCheckedModeBanner: false,
             theme: ThemeData(

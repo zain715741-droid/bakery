@@ -72,7 +72,6 @@ class InventoryProvider extends ChangeNotifier {
 
   /// Deduct stock according to recipe requirements * batch multiplier
   bool deductRecipeStock(Map<String, double> deductions) {
-    // Deductions is Map<ingredientId, requiredQuantity>
     for (final entry in deductions.entries) {
       final index = _ingredients.indexWhere((i) => i.id == entry.key);
       if (index != -1) {

@@ -110,6 +110,24 @@ class UserModel {
     this.avatarUrl,
   }) : permissions = permissions ?? UserPermissions.forRole(role);
 
+  UserModel copyWith({
+    String? id,
+    String? email,
+    String? name,
+    UserRole? role,
+    UserPermissions? permissions,
+    String? avatarUrl,
+  }) {
+    return UserModel(
+      id: id ?? this.id,
+      email: email ?? this.email,
+      name: name ?? this.name,
+      role: role ?? this.role,
+      permissions: permissions ?? this.permissions,
+      avatarUrl: avatarUrl ?? this.avatarUrl,
+    );
+  }
+
   Map<String, dynamic> toMap() {
     return {
       'id': id,
