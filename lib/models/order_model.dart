@@ -1,5 +1,7 @@
 enum OrderStatus { pending, baking, ready, completed, cancelled }
+
 enum FulfillmentType { collection, delivery }
+
 enum PaymentStatus { paid, unpaid, partiallyPaid }
 
 extension OrderStatusExtension on OrderStatus {
@@ -51,18 +53,18 @@ class OrderItem {
   double get lineTotal => quantity * unitPrice;
 
   Map<String, dynamic> toMap() => {
-        'recipeId': recipeId,
-        'recipeName': recipeName,
-        'quantity': quantity,
-        'unitPrice': unitPrice,
-      };
+    'recipeId': recipeId,
+    'recipeName': recipeName,
+    'quantity': quantity,
+    'unitPrice': unitPrice,
+  };
 
   factory OrderItem.fromMap(Map<String, dynamic> map) => OrderItem(
-        recipeId: map['recipeId'] ?? '',
-        recipeName: map['recipeName'] ?? '',
-        quantity: map['quantity'] ?? 1,
-        unitPrice: (map['unitPrice'] as num?)?.toDouble() ?? 0.0,
-      );
+    recipeId: map['recipeId'] ?? '',
+    recipeName: map['recipeName'] ?? '',
+    quantity: map['quantity'] ?? 1,
+    unitPrice: (map['unitPrice'] as num?)?.toDouble() ?? 0.0,
+  );
 }
 
 class OrderModel {
@@ -141,43 +143,53 @@ class OrderModel {
   }
 
   Map<String, dynamic> toMap() => {
-        'id': id,
-        'invoiceNumber': invoiceNumber,
-        'customerId': customerId,
-        'customerName': customerName,
-        'customerPhone': customerPhone,
-        'customerAddress': customerAddress,
-        'customerPostcode': customerPostcode,
-        'items': items.map((i) => i.toMap()).toList(),
-        'status': status.name,
-        'fulfillment': fulfillment.name,
-        'paymentStatus': paymentStatus.name,
-        'vatRate': vatRate,
-        'createdAt': createdAt.toIso8601String(),
-        'targetDate': targetDate.toIso8601String(),
-        'notes': notes,
-      };
+    'id': id,
+    'invoiceNumber': invoiceNumber,
+    'customerId': customerId,
+    'customerName': customerName,
+    'customerPhone': customerPhone,
+    'customerAddress': customerAddress,
+    'customerPostcode': customerPostcode,
+    'items': items.map((i) => i.toMap()).toList(),
+    'status': status.name,
+    'fulfillment': fulfillment.name,
+    'paymentStatus': paymentStatus.name,
+    'vatRate': vatRate,
+    'createdAt': createdAt.toIso8601String(),
+    'targetDate': targetDate.toIso8601String(),
+    'notes': notes,
+  };
 
   factory OrderModel.fromMap(Map<String, dynamic> map) => OrderModel(
-        id: map['id'] ?? '',
-        invoiceNumber: map['invoiceNumber'] ?? 'INV-0001',
-        customerId: map['customerId'] ?? '',
-        customerName: map['customerName'] ?? 'Guest Customer',
-        customerPhone: map['customerPhone'] ?? '',
-        customerAddress: map['customerAddress'] ?? '',
-        customerPostcode: map['customerPostcode'] ?? '',
-        items: (map['items'] as List<dynamic>?)
-                ?.map((i) => OrderItem.fromMap(Map<String, dynamic>.from(i)))
-                .toList() ??
-            [],
-        status: OrderStatusExtension.fromString(map['status'] ?? 'pending'),
-        fulfillment: map['fulfillment'] == 'delivery' ? FulfillmentType.delivery : FulfillmentType.collection,
-        paymentStatus: map['paymentStatus'] == 'paid'
-            ? PaymentStatus.paid
-            : (map['paymentStatus'] == 'partiallyPaid' || map['paymentStatus'] == 'partially_paid' ? PaymentStatus.partiallyPaid : PaymentStatus.unpaid),
-        vatRate: (map['vatRate'] as num?)?.toDouble() ?? 0.20,
-        createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : DateTime.now(),
-        targetDate: map['targetDate'] != null ? DateTime.parse(map['targetDate']) : DateTime.now().add(const Duration(days: 1)),
-        notes: map['notes'] ?? '',
-      );
+    id: map['id'] ?? '',
+    invoiceNumber: map['invoiceNumber'] ?? 'INV-0001',
+    customerId: map['customerId'] ?? '',
+    customerName: map['customerName'] ?? 'Guest Customer',
+    customerPhone: map['customerPhone'] ?? '',
+    customerAddress: map['customerAddress'] ?? '',
+    customerPostcode: map['customerPostcode'] ?? '',
+    items:
+        (map['items'] as List<dynamic>?)
+            ?.map((i) => OrderItem.fromMap(Map<String, dynamic>.from(i)))
+            .toList() ??
+        [],
+    status: OrderStatusExtension.fromString(map['status'] ?? 'pending'),
+    fulfillment: map['fulfillment'] == 'delivery'
+        ? FulfillmentType.delivery
+        : FulfillmentType.collection,
+    paymentStatus: map['paymentStatus'] == 'paid'
+        ? PaymentStatus.paid
+        : (map['paymentStatus'] == 'partiallyPaid' ||
+                  map['paymentStatus'] == 'partially_paid'
+              ? PaymentStatus.partiallyPaid
+              : PaymentStatus.unpaid),
+    vatRate: (map['vatRate'] as num?)?.toDouble() ?? 0.20,
+    createdAt: map['createdAt'] != null
+        ? DateTime.parse(map['createdAt'])
+        : DateTime.now(),
+    targetDate: map['targetDate'] != null
+        ? DateTime.parse(map['targetDate'])
+        : DateTime.now().add(const Duration(days: 1)),
+    notes: map['notes'] ?? '',
+  );
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/recipe_model.dart';
 import '../models/ingredient_model.dart';
+import '../services/database_service.dart';
 
 class RecipeProvider extends ChangeNotifier {
   List<RecipeModel> _recipes = [];
@@ -43,6 +44,7 @@ class RecipeProvider extends ChangeNotifier {
   void addRecipe(RecipeModel recipe) {
     _recipes.add(recipe);
     notifyListeners();
+    DatabaseService.instance.saveDocument('recipes', recipe.id, recipe.toMap());
   }
 
   void updateRecipe(RecipeModel recipe) {
@@ -50,12 +52,14 @@ class RecipeProvider extends ChangeNotifier {
     if (idx != -1) {
       _recipes[idx] = recipe;
       notifyListeners();
+      DatabaseService.instance.saveDocument('recipes', recipe.id, recipe.toMap());
     }
   }
 
   void deleteRecipe(String id) {
     _recipes.removeWhere((r) => r.id == id);
     notifyListeners();
+    DatabaseService.instance.deleteDocument('recipes', id);
   }
 
   /// Recalculate recipe costs when ingredient purchase price changes

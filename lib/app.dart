@@ -10,6 +10,8 @@ import 'providers/inventory_provider.dart';
 import 'providers/recipe_provider.dart';
 import 'providers/customer_provider.dart';
 import 'providers/order_provider.dart';
+import 'theme/luxury_theme.dart';
+import 'views/shell_screen.dart';
 import 'views/auth/login_screen.dart';
 
 class BakeryApp extends StatefulWidget {
@@ -57,6 +59,9 @@ class _BakeryAppState extends State<BakeryApp> {
       onCustomersLoaded: _customerProvider.setCustomers,
       onOrdersLoaded: _orderProvider.setOrders,
     );
+
+    // Restore saved user login session
+    await _authProvider.restoreSavedSession();
   }
 
   @override
@@ -76,26 +81,7 @@ class _BakeryAppState extends State<BakeryApp> {
           return GetMaterialApp(
             title: branding.businessName,
             debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              useMaterial3: true,
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: branding.primaryColor,
-                primary: branding.primaryColor,
-                secondary: branding.accentColor,
-                surface: const Color(0xFFFDFBF7),
-              ),
-              scaffoldBackgroundColor: const Color(0xFFFDFBF7),
-              fontFamily: 'Roboto',
-              cardTheme: CardThemeData(
-                elevation: 2,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              ),
-              appBarTheme: AppBarTheme(
-                backgroundColor: branding.primaryColor,
-                foregroundColor: Colors.white,
-                elevation: 0,
-              ),
-            ),
+            theme: createLuxuryTheme(branding.primaryColor, branding.accentColor),
             home: FutureBuilder<void>(
               future: _initFuture,
               builder: (context, snapshot) {
@@ -108,7 +94,9 @@ class _BakeryAppState extends State<BakeryApp> {
                     ),
                   );
                 }
-                return const LoginScreen();
+                return _authProvider.isAuthenticated
+                    ? const ShellScreen()
+                    : const LoginScreen();
               },
             ),
           );

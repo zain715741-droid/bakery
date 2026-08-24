@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/customer_model.dart';
+import '../services/database_service.dart';
 
 class CustomerProvider extends ChangeNotifier {
   List<CustomerModel> _customers = [];
@@ -32,6 +33,7 @@ class CustomerProvider extends ChangeNotifier {
   void addCustomer(CustomerModel customer) {
     _customers.add(customer);
     notifyListeners();
+    DatabaseService.instance.saveDocument('customers', customer.id, customer.toMap());
   }
 
   void updateCustomer(CustomerModel customer) {
@@ -39,23 +41,27 @@ class CustomerProvider extends ChangeNotifier {
     if (idx != -1) {
       _customers[idx] = customer;
       notifyListeners();
+      DatabaseService.instance.saveDocument('customers', customer.id, customer.toMap());
     }
   }
 
   void deleteCustomer(String id) {
     _customers.removeWhere((c) => c.id == id);
     notifyListeners();
+    DatabaseService.instance.deleteDocument('customers', id);
   }
 
   void recordCustomerOrder(String customerId, double orderTotal) {
     final idx = _customers.indexWhere((c) => c.id == customerId);
     if (idx != -1) {
       final current = _customers[idx];
-      _customers[idx] = current.copyWith(
+      final updated = current.copyWith(
         totalOrders: current.totalOrders + 1,
         totalSpent: current.totalSpent + orderTotal,
       );
+      _customers[idx] = updated;
       notifyListeners();
+      DatabaseService.instance.saveDocument('customers', updated.id, updated.toMap());
     }
   }
 }

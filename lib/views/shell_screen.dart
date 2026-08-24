@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../controllers/shell_controller.dart';
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/branding_provider.dart';
+import '../theme/luxury_theme.dart';
 import 'widgets/sync_banner.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'recipes/recipes_screen.dart';
@@ -12,31 +16,20 @@ import 'customers/customers_screen.dart';
 import 'users/user_management_screen.dart';
 import 'branding/branding_screen.dart';
 import 'reports/reports_screen.dart';
-import 'auth/login_screen.dart';
 
-class ShellScreen extends StatefulWidget {
+class ShellScreen extends StatelessWidget {
   const ShellScreen({super.key});
 
   @override
-  State<ShellScreen> createState() => _ShellScreenState();
-}
-
-class _ShellScreenState extends State<ShellScreen> {
-  int _currentIndex = 0;
-  bool _isOnline = true;
-
-  void _onTabSelected(int index) {
-    setState(() => _currentIndex = index);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final branding = Provider.of<BrandingProvider>(context).branding;
-    final auth = Provider.of<AuthProvider>(context);
+    final controller = Get.put(ShellController());
+    final branding = Get.find<BrandingProvider>().branding;
+    final auth = Get.find<AuthProvider>();
     final primaryColor = branding.primaryColor;
+    final accentColor = branding.accentColor;
 
     final List<Widget> pages = [
-      DashboardScreen(onNavigateToTab: _onTabSelected),
+      DashboardScreen(onNavigateToTab: controller.selectTab),
       const RecipesScreen(),
       const InventoryScreen(),
       const OrdersScreen(),
@@ -62,124 +55,121 @@ class _ShellScreenState extends State<ShellScreen> {
         final isDesktop = constraints.maxWidth > 800;
 
         if (isDesktop) {
-          // Desktop / Web Responsive Layout with NavigationRail
+          // Desktop Layout
           return Scaffold(
+            backgroundColor: LuxuryColors.cream,
             appBar: AppBar(
               title: Row(
                 children: [
-                  const Icon(Icons.bakery_dining_rounded, color: Colors.white, size: 28),
-                  const SizedBox(width: 12),
-                  Text(
-                    branding.businessName,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: accentColor, width: 1.5),
+                    ),
+                    child: Icon(Icons.bakery_dining_rounded, color: accentColor, size: 22),
                   ),
-                  const SizedBox(width: 8),
-                  Text("• ${pageTitles[_currentIndex]}", style: const TextStyle(fontSize: 15, fontWeight: FontWeight.normal)),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: Text(
+                      branding.businessName,
+                      style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold, fontSize: 19, color: Colors.white),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Obx(() => Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: accentColor.withValues(alpha: 0.3)),
+                        ),
+                        child: Text(
+                          pageTitles[controller.currentIndex.value],
+                          style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white.withValues(alpha: 0.95)),
+                        ),
+                      )),
                 ],
               ),
               backgroundColor: primaryColor,
               foregroundColor: Colors.white,
+              elevation: 2,
               actions: [
-                IconButton(
-                  icon: Icon(_isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded),
-                  tooltip: _isOnline ? "Connected to Cloud Firestore" : "Offline Storage Mode",
-                  onPressed: () {
-                    setState(() => _isOnline = !_isOnline);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(_isOnline ? "Connected to Cloud Firestore" : "Switched to 100% Offline SQLite Storage Mode"),
-                        duration: const Duration(seconds: 2),
-                      ),
-                    );
-                  },
-                ),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.account_circle_rounded, size: 28),
-                  onSelected: (val) {
-                    if (val == 'branding') {
-                      setState(() => _currentIndex = 7);
-                    } else if (val == 'users') {
-                      setState(() => _currentIndex = 6);
-                    } else if (val == 'reports') {
-                      setState(() => _currentIndex = 5);
-                    } else if (val == 'logout') {
-                      auth.logout();
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(builder: (_) => const LoginScreen()),
-                      );
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                      enabled: false,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(auth.currentUser?.name ?? 'User', style: const TextStyle(fontWeight: FontWeight.bold)),
-                          Text("Role: ${auth.currentRole.displayName}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
-                          const Divider(),
-                        ],
-                      ),
-                    ),
-                    if (auth.permissions.canViewFinancials)
-                      const PopupMenuItem(
-                        value: 'reports',
-                        child: Row(children: [Icon(Icons.bar_chart, size: 18), SizedBox(width: 8), Text("Financial Reports")]),
-                      ),
-                    if (auth.permissions.canManageUsers)
-                      const PopupMenuItem(
-                        value: 'users',
-                        child: Row(children: [Icon(Icons.people_alt, size: 18), SizedBox(width: 8), Text("User Management")]),
-                      ),
-                    if (auth.permissions.canEditBranding)
-                      const PopupMenuItem(
-                        value: 'branding',
-                        child: Row(children: [Icon(Icons.brush_rounded, size: 18), SizedBox(width: 8), Text("Branding Settings")]),
-                      ),
-                    const PopupMenuItem(
-                      value: 'logout',
-                      child: Row(children: [Icon(Icons.logout, color: Colors.red, size: 18), SizedBox(width: 8), Text("Sign Out", style: TextStyle(color: Colors.red))]),
-                    ),
-                  ],
-                ),
-                const SizedBox(width: 12),
+                _buildOnlineBadge(controller),
+                const SizedBox(width: 14),
+                _buildProfileMenu(auth, controller, accentColor),
+                const SizedBox(width: 16),
               ],
             ),
             body: Column(
               children: [
-                SyncBanner(
-                  isOnline: _isOnline,
-                  onSyncPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Cloud Firestore sync completed! All data is synced."), backgroundColor: Colors.green),
-                    );
-                  },
-                ),
+                Obx(() => SyncBanner(
+                      isOnline: controller.isOnline.value,
+                      onSyncPressed: () {
+                        Get.snackbar("Sync Complete", "Cloud Firestore sync completed!", backgroundColor: LuxuryColors.espresso, colorText: Colors.white);
+                      },
+                    )),
                 Expanded(
                   child: Row(
                     children: [
-                      NavigationRail(
-                        selectedIndex: _currentIndex,
-                        onDestinationSelected: _onTabSelected,
-                        labelType: NavigationRailLabelType.all,
-                        selectedIconTheme: IconThemeData(color: primaryColor),
-                        selectedLabelTextStyle: TextStyle(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 12),
-                        unselectedIconTheme: const IconThemeData(color: Colors.grey),
-                        unselectedLabelTextStyle: const TextStyle(color: Colors.grey, fontSize: 11),
-                        destinations: const [
-                          NavigationRailDestination(icon: Icon(Icons.dashboard_rounded), label: Text("Dashboard")),
-                          NavigationRailDestination(icon: Icon(Icons.menu_book_rounded), label: Text("Recipes")),
-                          NavigationRailDestination(icon: Icon(Icons.inventory_2_rounded), label: Text("Inventory")),
-                          NavigationRailDestination(icon: Icon(Icons.receipt_long_rounded), label: Text("Orders")),
-                          NavigationRailDestination(icon: Icon(Icons.contacts_rounded), label: Text("Customers")),
-                          NavigationRailDestination(icon: Icon(Icons.bar_chart_rounded), label: Text("Reports")),
-                          NavigationRailDestination(icon: Icon(Icons.people_alt_rounded), label: Text("Users")),
-                          NavigationRailDestination(icon: Icon(Icons.brush_rounded), label: Text("Branding")),
-                        ],
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border(right: BorderSide(color: Colors.brown.shade100, width: 1)),
+                          boxShadow: LuxuryShadows.soft,
+                        ),
+                        child: LayoutBuilder(
+                          builder: (context, railConstraints) {
+                            return SingleChildScrollView(
+                              physics: const ClampingScrollPhysics(),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(minHeight: railConstraints.maxHeight),
+                                child: IntrinsicHeight(
+                                  child: Obx(() => NavigationRail(
+                                        backgroundColor: Colors.transparent,
+                                        selectedIndex: controller.currentIndex.value,
+                                        onDestinationSelected: controller.selectTab,
+                                        labelType: NavigationRailLabelType.all,
+                                        indicatorColor: accentColor.withValues(alpha: 0.2),
+                                        selectedIconTheme: IconThemeData(color: primaryColor, size: 24),
+                                        selectedLabelTextStyle: GoogleFonts.outfit(color: primaryColor, fontWeight: FontWeight.bold, fontSize: 11),
+                                        unselectedIconTheme: IconThemeData(color: Colors.brown.shade300, size: 21),
+                                        unselectedLabelTextStyle: GoogleFonts.outfit(color: Colors.brown.shade400, fontSize: 10.5),
+                                        destinations: [
+                                          const NavigationRailDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard_rounded), label: Text("Dashboard")),
+                                          const NavigationRailDestination(icon: Icon(Icons.menu_book_outlined), selectedIcon: Icon(Icons.menu_book_rounded), label: Text("Recipes")),
+                                          const NavigationRailDestination(icon: Icon(Icons.inventory_2_outlined), selectedIcon: Icon(Icons.inventory_2_rounded), label: Text("Inventory")),
+                                          const NavigationRailDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long_rounded), label: Text("Orders")),
+                                          const NavigationRailDestination(icon: Icon(Icons.contacts_outlined), selectedIcon: Icon(Icons.contacts_rounded), label: Text("Customers")),
+                                          const NavigationRailDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart_rounded), label: Text("Reports")),
+                                          NavigationRailDestination(
+                                            icon: auth.pendingCount > 0
+                                                ? Badge.count(count: auth.pendingCount, backgroundColor: Colors.orange.shade800, child: const Icon(Icons.people_alt_outlined))
+                                                : const Icon(Icons.people_alt_outlined),
+                                            selectedIcon: auth.pendingCount > 0
+                                                ? Badge.count(count: auth.pendingCount, backgroundColor: Colors.orange.shade800, child: const Icon(Icons.people_alt_rounded))
+                                                : const Icon(Icons.people_alt_rounded),
+                                            label: const Text("Users"),
+                                          ),
+                                          const NavigationRailDestination(icon: Icon(Icons.brush_outlined), selectedIcon: Icon(Icons.brush_rounded), label: Text("Branding")),
+                                        ],
+                                      )),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
-                      const VerticalDivider(thickness: 1, width: 1),
-                      Expanded(child: pages[_currentIndex]),
+                      Expanded(
+                        child: Obx(
+                          () => IndexedStack(
+                            index: controller.currentIndex.value,
+                            children: pages,
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -188,166 +178,213 @@ class _ShellScreenState extends State<ShellScreen> {
           );
         }
 
-        // Mobile Layout with BottomNavigationBar & Drawer
+        // Mobile Layout
         return Scaffold(
+          backgroundColor: LuxuryColors.cream,
           appBar: AppBar(
-            title: Text(
-              pageTitles[_currentIndex],
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-              overflow: TextOverflow.ellipsis,
-            ),
+            title: Obx(() => Text(
+                  pageTitles[controller.currentIndex.value],
+                  style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold, fontSize: 18),
+                )),
             backgroundColor: primaryColor,
             foregroundColor: Colors.white,
             actions: [
               IconButton(
-                icon: Icon(_isOnline ? Icons.wifi_rounded : Icons.wifi_off_rounded),
-                tooltip: _isOnline ? "Connected to Cloud Firestore" : "Offline Storage Mode",
-                onPressed: () {
-                  setState(() => _isOnline = !_isOnline);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(_isOnline ? "Connected to Cloud Firestore" : "Switched to 100% Offline SQLite Storage Mode"),
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                },
+                icon: Obx(() => Icon(
+                      controller.isOnline.value ? Icons.cloud_done_rounded : Icons.cloud_off_rounded,
+                      color: controller.isOnline.value ? Colors.greenAccent : Colors.orangeAccent,
+                    )),
+                onPressed: controller.toggleOnline,
               ),
             ],
           ),
-          drawer: Drawer(
-            child: ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                UserAccountsDrawerHeader(
-                  decoration: BoxDecoration(color: primaryColor),
-                  accountName: Text(auth.currentUser?.name ?? branding.ownerName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                  accountEmail: Text(auth.currentUser?.email ?? 'owner@bakery.co.uk'),
-                  currentAccountPicture: const CircleAvatar(
-                    backgroundColor: Colors.white24,
-                    child: Icon(Icons.bakery_dining_rounded, color: Colors.white, size: 36),
-                  ),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.dashboard_rounded),
-                  title: const Text("Dashboard"),
-                  selected: _currentIndex == 0,
-                  onTap: () {
-                    _onTabSelected(0);
-                    Navigator.pop(context);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.menu_book_rounded),
-                  title: const Text("Recipes"),
-                  selected: _currentIndex == 1,
-                  onTap: () {
-                    _onTabSelected(1);
-                    Navigator.pop(context);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.inventory_2_rounded),
-                  title: const Text("Inventory"),
-                  selected: _currentIndex == 2,
-                  onTap: () {
-                    _onTabSelected(2);
-                    Navigator.pop(context);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.receipt_long_rounded),
-                  title: const Text("Orders"),
-                  selected: _currentIndex == 3,
-                  onTap: () {
-                    _onTabSelected(3);
-                    Navigator.pop(context);
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.contacts_rounded),
-                  title: const Text("Customers"),
-                  selected: _currentIndex == 4,
-                  onTap: () {
-                    _onTabSelected(4);
-                    Navigator.pop(context);
-                  },
-                ),
-                const Divider(),
-                if (auth.permissions.canViewFinancials)
-                  ListTile(
-                    leading: const Icon(Icons.bar_chart_rounded),
-                    title: const Text("Financial Reports"),
-                    selected: _currentIndex == 5,
-                    onTap: () {
-                      _onTabSelected(5);
-                      Navigator.pop(context);
-                    },
-                  ),
-                if (auth.permissions.canManageUsers)
-                  ListTile(
-                    leading: const Icon(Icons.people_alt_rounded),
-                    title: const Text("User Management"),
-                    selected: _currentIndex == 6,
-                    onTap: () {
-                      _onTabSelected(6);
-                      Navigator.pop(context);
-                    },
-                  ),
-                if (auth.permissions.canEditBranding)
-                  ListTile(
-                    leading: const Icon(Icons.brush_rounded),
-                    title: const Text("Branding Studio"),
-                    selected: _currentIndex == 7,
-                    onTap: () {
-                      _onTabSelected(7);
-                      Navigator.pop(context);
-                    },
-                  ),
-                const Divider(),
-                ListTile(
-                  leading: const Icon(Icons.logout, color: Colors.red),
-                  title: const Text("Sign Out", style: TextStyle(color: Colors.red)),
-                  onTap: () {
-                    auth.logout();
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    );
-                  },
-                ),
-              ],
-            ),
-          ),
+          drawer: _buildDrawer(auth, branding, controller, primaryColor, accentColor),
           body: Column(
             children: [
-              SyncBanner(
-                isOnline: _isOnline,
-                onSyncPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text("Cloud Firestore sync completed! All data is synced."), backgroundColor: Colors.green),
-                  );
-                },
+              Obx(() => SyncBanner(
+                    isOnline: controller.isOnline.value,
+                    onSyncPressed: () {
+                      Get.snackbar("Sync Complete", "Cloud Firestore sync completed!", backgroundColor: LuxuryColors.espresso, colorText: Colors.white);
+                    },
+                  )),
+              Expanded(
+                child: Obx(
+                  () => IndexedStack(
+                    index: controller.currentIndex.value,
+                    children: pages,
+                  ),
+                ),
               ),
-              Expanded(child: pages[_currentIndex]),
             ],
           ),
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: _currentIndex > 4 ? 0 : _currentIndex,
-            onTap: _onTabSelected,
-            type: BottomNavigationBarType.fixed,
-            selectedItemColor: primaryColor,
-            unselectedItemColor: Colors.grey.shade600,
-            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.dashboard_rounded), label: "Dashboard"),
-              BottomNavigationBarItem(icon: Icon(Icons.menu_book_rounded), label: "Recipes"),
-              BottomNavigationBarItem(icon: Icon(Icons.inventory_2_rounded), label: "Inventory"),
-              BottomNavigationBarItem(icon: Icon(Icons.receipt_long_rounded), label: "Orders"),
-              BottomNavigationBarItem(icon: Icon(Icons.contacts_rounded), label: "Customers"),
-            ],
-          ),
+          bottomNavigationBar: Obx(() => Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border(top: BorderSide(color: Colors.brown.shade100, width: 1)),
+                ),
+                child: BottomNavigationBar(
+                  currentIndex: controller.currentIndex.value > 4 ? 0 : controller.currentIndex.value,
+                  onTap: controller.selectTab,
+                  type: BottomNavigationBarType.fixed,
+                  backgroundColor: Colors.white,
+                  selectedItemColor: primaryColor,
+                  unselectedItemColor: Colors.brown.shade300,
+                  selectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 11),
+                  unselectedLabelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w500, fontSize: 11),
+                  items: const [
+                    BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), activeIcon: Icon(Icons.dashboard_rounded), label: "Dashboard"),
+                    BottomNavigationBarItem(icon: Icon(Icons.menu_book_outlined), activeIcon: Icon(Icons.menu_book_rounded), label: "Recipes"),
+                    BottomNavigationBarItem(icon: Icon(Icons.inventory_2_outlined), activeIcon: Icon(Icons.inventory_2_rounded), label: "Inventory"),
+                    BottomNavigationBarItem(icon: Icon(Icons.receipt_long_outlined), activeIcon: Icon(Icons.receipt_long_rounded), label: "Orders"),
+                    BottomNavigationBarItem(icon: Icon(Icons.contacts_outlined), activeIcon: Icon(Icons.contacts_rounded), label: "Customers"),
+                  ],
+                ),
+              )),
         );
       },
     );
+  }
+
+  Widget _buildOnlineBadge(ShellController controller) {
+    return Obx(() => Container(
+          margin: const EdgeInsets.symmetric(vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+          decoration: BoxDecoration(
+            color: controller.isOnline.value ? const Color(0xFF2E7D32).withValues(alpha: 0.25) : Colors.orange.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: controller.isOnline.value ? Colors.greenAccent : Colors.orangeAccent),
+          ),
+          child: InkWell(
+            onTap: controller.toggleOnline,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(controller.isOnline.value ? Icons.cloud_done_rounded : Icons.cloud_off_rounded, size: 15, color: controller.isOnline.value ? Colors.greenAccent : Colors.orangeAccent),
+                const SizedBox(width: 6),
+                Text(controller.isOnline.value ? "Cloud Online" : "Offline SQLite", style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
+              ],
+            ),
+          ),
+        ));
+  }
+
+  Widget _buildProfileMenu(AuthProvider auth, ShellController controller, Color accentColor) {
+    return PopupMenuButton<String>(
+      icon: Container(
+        padding: const EdgeInsets.all(2),
+        decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: accentColor, width: 1.5)),
+        child: const Icon(Icons.person_rounded, size: 22, color: Colors.white),
+      ),
+      onSelected: (val) {
+        if (val == 'branding') controller.selectTab(7);
+        if (val == 'users') controller.selectTab(6);
+        if (val == 'reports') controller.selectTab(5);
+        if (val == 'logout') controller.logout();
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          enabled: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(auth.currentUser?.name ?? 'Artisan User', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: LuxuryColors.textPrimary)),
+              Text("Role: ${auth.currentRole.displayName}", style: GoogleFonts.outfit(fontSize: 12, color: accentColor, fontWeight: FontWeight.w600)),
+              const Divider(),
+            ],
+          ),
+        ),
+        if (auth.permissions.canViewFinancials)
+          PopupMenuItem(value: 'reports', child: Row(children: [const Icon(Icons.bar_chart, size: 18), const SizedBox(width: 8), Text("Financial Reports", style: GoogleFonts.outfit())])),
+        if (auth.permissions.canManageUsers)
+          PopupMenuItem(
+            value: 'users',
+            child: Row(
+              children: [
+                const Icon(Icons.people_alt, size: 18),
+                const SizedBox(width: 8),
+                Text("User Management", style: GoogleFonts.outfit()),
+                if (auth.pendingCount > 0) ...[
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                    decoration: BoxDecoration(color: Colors.orange.shade800, borderRadius: BorderRadius.circular(10)),
+                    child: Text("${auth.pendingCount}", style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        if (auth.permissions.canEditBranding)
+          PopupMenuItem(value: 'branding', child: Row(children: [const Icon(Icons.brush_rounded, size: 18), const SizedBox(width: 8), Text("Branding Studio", style: GoogleFonts.outfit())])),
+        PopupMenuItem(value: 'logout', child: Row(children: [const Icon(Icons.logout, color: Colors.red, size: 18), const SizedBox(width: 8), Text("Sign Out", style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.w600))])),
+      ],
+    );
+  }
+
+  Widget _buildDrawer(AuthProvider auth, dynamic branding, ShellController controller, Color primaryColor, Color accentColor) {
+    return Drawer(
+      backgroundColor: LuxuryColors.cream,
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 48, 20, 20),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(colors: [primaryColor, Color.alphaBlend(Colors.black38, primaryColor)]),
+              border: Border(bottom: BorderSide(color: accentColor.withValues(alpha: 0.4), width: 1.5)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(radius: 28, backgroundColor: Colors.white24, child: Icon(Icons.bakery_dining_rounded, color: Colors.white, size: 32)),
+                const SizedBox(height: 14),
+                Text(auth.currentUser?.name ?? branding.ownerName, style: GoogleFonts.playfairDisplay(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(auth.currentUser?.email ?? 'owner@bakery.co.uk', style: GoogleFonts.outfit(color: Colors.white.withValues(alpha: 0.8), fontSize: 13)),
+              ],
+            ),
+          ),
+          _buildDrawerTile(Icons.dashboard_rounded, "Dashboard", 0, controller, primaryColor, accentColor),
+          _buildDrawerTile(Icons.menu_book_rounded, "Recipes", 1, controller, primaryColor, accentColor),
+          _buildDrawerTile(Icons.inventory_2_rounded, "Inventory", 2, controller, primaryColor, accentColor),
+          _buildDrawerTile(Icons.receipt_long_rounded, "Orders", 3, controller, primaryColor, accentColor),
+          _buildDrawerTile(Icons.contacts_rounded, "Customers", 4, controller, primaryColor, accentColor),
+          const Divider(),
+          if (auth.permissions.canViewFinancials) _buildDrawerTile(Icons.bar_chart_rounded, "Financial Reports", 5, controller, primaryColor, accentColor),
+          if (auth.permissions.canManageUsers) _buildDrawerTile(Icons.people_alt_rounded, "User Management", 6, controller, primaryColor, accentColor, badgeCount: auth.pendingCount),
+          if (auth.permissions.canEditBranding) _buildDrawerTile(Icons.brush_rounded, "Branding Studio", 7, controller, primaryColor, accentColor),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
+            title: Text("Sign Out", style: GoogleFonts.outfit(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            onTap: controller.logout,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawerTile(IconData icon, String title, int index, ShellController controller, Color primaryColor, Color accentColor, {int badgeCount = 0}) {
+    return Obx(() {
+      final isSelected = controller.currentIndex.value == index;
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        decoration: BoxDecoration(
+          color: isSelected ? accentColor.withValues(alpha: 0.15) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: isSelected ? Border.all(color: accentColor.withValues(alpha: 0.5)) : null,
+        ),
+        child: ListTile(
+          leading: badgeCount > 0
+              ? Badge.count(count: badgeCount, backgroundColor: Colors.orange.shade800, child: Icon(icon, color: isSelected ? primaryColor : Colors.brown.shade400))
+              : Icon(icon, color: isSelected ? primaryColor : Colors.brown.shade400),
+          title: Text(title, style: GoogleFonts.outfit(color: isSelected ? primaryColor : LuxuryColors.textPrimary, fontWeight: isSelected ? FontWeight.bold : FontWeight.w500)),
+          trailing: badgeCount > 0 ? Text("$badgeCount pending", style: GoogleFonts.outfit(color: Colors.orange.shade800, fontSize: 11, fontWeight: FontWeight.bold)) : null,
+          onTap: () {
+            controller.selectTab(index);
+            Get.back(); // close drawer
+          },
+        ),
+      );
+    });
   }
 }

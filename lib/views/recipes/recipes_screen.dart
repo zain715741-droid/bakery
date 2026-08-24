@@ -134,22 +134,37 @@ class RecipesScreen extends StatelessWidget {
                                   ],
                                 ),
                                 const SizedBox(height: 8),
-                                Row(
+                                Wrap(
+                                  spacing: 16,
+                                  runSpacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
-                                    Icon(Icons.timer_outlined, size: 16, color: Colors.grey.shade600),
-                                    const SizedBox(width: 4),
-                                    Text("${recipe.prepTimeMins + recipe.bakeTimeMins} mins total", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
-                                    const SizedBox(width: 16),
-                                    Icon(Icons.pie_chart_outline_rounded, size: 16, color: Colors.grey.shade600),
-                                    const SizedBox(width: 4),
-                                    Text("Yield: ${recipe.yieldServings} pcs", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.timer_outlined, size: 16, color: Colors.grey.shade600),
+                                        const SizedBox(width: 4),
+                                        Text("${recipe.prepTimeMins + recipe.bakeTimeMins} mins total", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                                      ],
+                                    ),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.pie_chart_outline_rounded, size: 16, color: Colors.grey.shade600),
+                                        const SizedBox(width: 4),
+                                        Text("Yield: ${recipe.yieldServings} pcs", style: TextStyle(fontSize: 12, color: Colors.grey.shade700)),
+                                      ],
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 12),
 
                                 // Costing & Allergens Row
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 6,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  alignment: WrapAlignment.spaceBetween,
                                   children: [
                                     RoleGuard(
                                       canAccess: (auth) => auth.permissions.canViewFinancials,
@@ -167,6 +182,7 @@ class RecipesScreen extends StatelessWidget {
                                     ),
                                     if (recipe.allergens.isNotEmpty)
                                       Row(
+                                        mainAxisSize: MainAxisSize.min,
                                         children: [
                                           Icon(Icons.warning_amber_rounded, size: 14, color: Colors.red.shade700),
                                           const SizedBox(width: 2),

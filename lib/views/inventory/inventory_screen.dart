@@ -298,34 +298,50 @@ class InventoryScreen extends StatelessWidget {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Stock: ${ing.currentStock.toStringAsFixed(0)} ${ing.unit}",
-                                        style: TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: ing.isLowStock ? Colors.red.shade700 : Colors.black87,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          "Stock: ${ing.currentStock.toStringAsFixed(0)} ${ing.unit}",
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: ing.isLowStock ? Colors.red.shade700 : Colors.black87,
+                                          ),
                                         ),
-                                      ),
-                                      Text("Supplier: ${ing.supplierName}", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-                                    ],
+                                        Text(
+                                          "Supplier: ${ing.supplierName}",
+                                          style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
                                   ),
+                                  const SizedBox(width: 8),
                                   RoleGuard(
                                     canAccess: (auth) => auth.permissions.canEditInventory,
                                     child: Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         IconButton(
-                                          icon: const Icon(Icons.remove_circle_outline, color: Colors.brown),
+                                          icon: const Icon(Icons.remove_circle_outline, color: Colors.brown, size: 20),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
                                           onPressed: () => inventory.adjustStock(ing.id, -100),
                                         ),
+                                        const SizedBox(width: 8),
                                         IconButton(
-                                          icon: const Icon(Icons.add_circle_outline, color: Colors.brown),
+                                          icon: const Icon(Icons.add_circle_outline, color: Colors.brown, size: 20),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
                                           onPressed: () => inventory.adjustStock(ing.id, 100),
                                         ),
+                                        const SizedBox(width: 8),
                                         IconButton(
-                                          icon: const Icon(Icons.edit_outlined, color: Colors.blue),
+                                          icon: const Icon(Icons.edit_outlined, color: Colors.blue, size: 20),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
                                           onPressed: () => _showIngredientModal(context, ingredientToEdit: ing),
                                         ),
                                       ],

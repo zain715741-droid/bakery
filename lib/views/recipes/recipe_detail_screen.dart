@@ -80,14 +80,13 @@ class RecipeDetailScreen extends StatelessWidget {
                     elevation: 2,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     child: Padding(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 16.0),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildDetailMetric("Category", recipe.category, Icons.category_rounded, primaryColor),
-                          _buildDetailMetric("Servings", "${recipe.yieldServings} pcs", Icons.pie_chart_rounded, primaryColor),
-                          _buildDetailMetric("Prep / Bake", "${recipe.prepTimeMins}m / ${recipe.bakeTimeMins}m", Icons.timer_rounded, primaryColor),
-                          _buildDetailMetric("Bake Temp", "${recipe.bakingTempC}°C", Icons.thermostat_rounded, Colors.deepOrange),
+                          Expanded(child: _buildDetailMetric("Category", recipe.category, Icons.category_rounded, primaryColor)),
+                          Expanded(child: _buildDetailMetric("Servings", "${recipe.yieldServings} pcs", Icons.pie_chart_rounded, primaryColor)),
+                          Expanded(child: _buildDetailMetric("Prep / Bake", "${recipe.prepTimeMins}m / ${recipe.bakeTimeMins}m", Icons.timer_rounded, primaryColor)),
+                          Expanded(child: _buildDetailMetric("Bake Temp", "${recipe.bakingTempC}°C", Icons.thermostat_rounded, Colors.deepOrange)),
                         ],
                       ),
                     ),
@@ -305,11 +304,18 @@ class RecipeDetailScreen extends StatelessWidget {
 
   Widget _buildDetailMetric(String label, String value, IconData icon, Color color) {
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, color: color, size: 22),
+        Icon(icon, color: color, size: 20),
         const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-        Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+        ),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(label, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+        ),
       ],
     );
   }

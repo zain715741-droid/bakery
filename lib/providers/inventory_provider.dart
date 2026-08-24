@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
+
 import '../models/ingredient_model.dart';
+import '../services/database_service.dart';
 
 class InventoryProvider extends ChangeNotifier {
   List<IngredientModel> _ingredients = [];
@@ -20,9 +22,11 @@ class InventoryProvider extends ChangeNotifier {
 
   List<IngredientModel> get filteredIngredients {
     return _ingredients.where((item) {
-      final matchesSearch = item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+      final matchesSearch =
+          item.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           item.supplierName.toLowerCase().contains(_searchQuery.toLowerCase());
-      final matchesCategory = _selectedCategory == 'All' || item.category == _selectedCategory;
+      final matchesCategory =
+          _selectedCategory == 'All' || item.category == _selectedCategory;
       return matchesSearch && matchesCategory;
     }).toList();
   }
@@ -45,6 +49,7 @@ class InventoryProvider extends ChangeNotifier {
   void addIngredient(IngredientModel ingredient) {
     _ingredients.add(ingredient);
     notifyListeners();
+    DatabaseService.instance.saveDocument('ingredients', ingredient.id, ingredient.toMap());
   }
 
   void updateIngredient(IngredientModel ingredient) {
@@ -52,21 +57,28 @@ class InventoryProvider extends ChangeNotifier {
     if (index != -1) {
       _ingredients[index] = ingredient;
       notifyListeners();
+      DatabaseService.instance.saveDocument('ingredients', ingredient.id, ingredient.toMap());
     }
   }
 
   void deleteIngredient(String id) {
     _ingredients.removeWhere((i) => i.id == id);
     notifyListeners();
+    DatabaseService.instance.deleteDocument('ingredients', id);
   }
 
   void adjustStock(String id, double deltaQuantity) {
     final index = _ingredients.indexWhere((i) => i.id == id);
     if (index != -1) {
       final current = _ingredients[index];
-      final newStock = (current.currentStock + deltaQuantity).clamp(0.0, 999999.0);
-      _ingredients[index] = current.copyWith(currentStock: newStock);
+      final newStock = (current.currentStock + deltaQuantity).clamp(
+        0.0,
+        999999.0,
+      );
+      final updated = current.copyWith(currentStock: newStock);
+      _ingredients[index] = updated;
       notifyListeners();
+      DatabaseService.instance.saveDocument('ingredients', updated.id, updated.toMap());
     }
   }
 
@@ -76,8 +88,13 @@ class InventoryProvider extends ChangeNotifier {
       final index = _ingredients.indexWhere((i) => i.id == entry.key);
       if (index != -1) {
         final current = _ingredients[index];
-        final updatedStock = (current.currentStock - entry.value).clamp(0.0, 999999.0);
-        _ingredients[index] = current.copyWith(currentStock: updatedStock);
+        final updatedStock = (current.currentStock - entry.value).clamp(
+          0.0,
+          999999.0,
+        );
+        final updated = current.copyWith(currentStock: updatedStock);
+        _ingredients[index] = updated;
+        DatabaseService.instance.saveDocument('ingredients', updated.id, updated.toMap());
       }
     }
     notifyListeners();

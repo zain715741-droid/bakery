@@ -100,6 +100,10 @@ class UserModel {
   final UserRole role;
   final UserPermissions permissions;
   final String? avatarUrl;
+  final bool isApproved;
+  final String? password;
+  final DateTime? createdAt;
+  final String? note;
 
   UserModel({
     required this.id,
@@ -108,6 +112,10 @@ class UserModel {
     required this.role,
     UserPermissions? permissions,
     this.avatarUrl,
+    this.isApproved = true,
+    this.password,
+    this.createdAt,
+    this.note,
   }) : permissions = permissions ?? UserPermissions.forRole(role);
 
   UserModel copyWith({
@@ -117,6 +125,10 @@ class UserModel {
     UserRole? role,
     UserPermissions? permissions,
     String? avatarUrl,
+    bool? isApproved,
+    String? password,
+    DateTime? createdAt,
+    String? note,
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -125,6 +137,10 @@ class UserModel {
       role: role ?? this.role,
       permissions: permissions ?? this.permissions,
       avatarUrl: avatarUrl ?? this.avatarUrl,
+      isApproved: isApproved ?? this.isApproved,
+      password: password ?? this.password,
+      createdAt: createdAt ?? this.createdAt,
+      note: note ?? this.note,
     );
   }
 
@@ -136,6 +152,10 @@ class UserModel {
       'role': role.name,
       'avatarUrl': avatarUrl,
       'permissions': permissions.toJson(),
+      'isApproved': isApproved,
+      'password': password,
+      'createdAt': createdAt?.toIso8601String(),
+      'note': note,
     };
   }
 
@@ -147,6 +167,10 @@ class UserModel {
       name: map['name'] ?? '',
       role: role,
       avatarUrl: map['avatarUrl'],
+      isApproved: map['isApproved'] ?? true,
+      password: map['password'],
+      createdAt: map['createdAt'] != null ? DateTime.tryParse(map['createdAt']) : null,
+      note: map['note'],
       permissions: map['permissions'] != null
           ? (map['permissions'] is Map
               ? UserPermissions.fromJson(Map<String, dynamic>.from(map['permissions']))

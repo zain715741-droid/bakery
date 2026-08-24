@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../controllers/order_form_controller.dart';
 import '../../models/order_model.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/branding_provider.dart';
@@ -13,79 +15,112 @@ class OrdersScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final orderProvider = Provider.of<OrderProvider>(context);
-    final branding = Provider.of<BrandingProvider>(context).branding;
-    final primaryColor = branding.primaryColor;
-    final currencyFormat = NumberFormat.currency(symbol: branding.currencySymbol, decimalDigits: 2);
-    final dateFormat = DateFormat('dd MMM yyyy, HH:mm');
+    return Consumer2<OrderProvider, BrandingProvider>(
+      builder: (context, orderProvider, brandingProvider, _) {
+        final branding = brandingProvider.branding;
+        final primaryColor = branding.primaryColor;
+        final currencyFormat = NumberFormat.currency(symbol: branding.currencySymbol, decimalDigits: 2);
+        final dateFormat = DateFormat('dd MMM yyyy, HH:mm');
 
-    final orders = orderProvider.filteredOrders;
+        final orders = orderProvider.filteredOrders;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFFDFBF7),
-      body: Column(
-        children: [
-          // Search & Status Filters
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-            child: TextField(
-              onChanged: (val) => orderProvider.setSearchQuery(val),
-              decoration: InputDecoration(
-                hintText: "Search order by invoice #, customer, or postcode...",
-                prefixIcon: const Icon(Icons.search_rounded),
-                suffixIcon: orderProvider.searchQuery.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear_rounded),
-                        onPressed: () => orderProvider.setSearchQuery(''),
-                      )
-                    : null,
-                filled: true,
-                fillColor: Colors.white,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
+        return Scaffold(
+          backgroundColor: const Color(0xFFFDFBF7),
+          body: Column(
+            children: [
+              // Search & Status Filters
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: TextField(
+                  onChanged: (val) => orderProvider.setSearchQuery(val),
+                  decoration: InputDecoration(
+                    hintText: "Search order by invoice #, customer, or postcode...",
+                    prefixIcon: const Icon(Icons.search_rounded),
+                    suffixIcon: orderProvider.searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear_rounded),
+                            onPressed: () => orderProvider.setSearchQuery(''),
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: Colors.grey.shade300),
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          SizedBox(
-            height: 44,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: [
-                _buildStatusChip(null, "All Orders", orderProvider, primaryColor),
-                _buildStatusChip(OrderStatus.pending, "Pending", orderProvider, primaryColor),
-                _buildStatusChip(OrderStatus.baking, "Baking", orderProvider, primaryColor),
-                _buildStatusChip(OrderStatus.ready, "Ready", orderProvider, primaryColor),
-                _buildStatusChip(OrderStatus.completed, "Completed", orderProvider, primaryColor),
-                _buildStatusChip(OrderStatus.cancelled, "Cancelled", orderProvider, primaryColor),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
+              SizedBox(
+                height: 44,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  children: [
+                    _buildStatusChip(null, "All Orders", orderProvider, primaryColor),
+                    _buildStatusChip(OrderStatus.pending, "Pending", orderProvider, primaryColor),
+                    _buildStatusChip(OrderStatus.baking, "Baking", orderProvider, primaryColor),
+                    _buildStatusChip(OrderStatus.ready, "Ready", orderProvider, primaryColor),
+                    _buildStatusChip(OrderStatus.completed, "Completed", orderProvider, primaryColor),
+                    _buildStatusChip(OrderStatus.cancelled, "Cancelled", orderProvider, primaryColor),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
 
-          // Orders List
-          Expanded(
-            child: orders.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.receipt_long_outlined, size: 60, color: Colors.grey.shade400),
-                        const SizedBox(height: 12),
-                        Text("No orders match your filter", style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
-                      ],
-                    ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: orders.length,
-                    itemBuilder: (context, index) {
-                      final order = orders[index];
-                      return Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              // Orders List
+              Expanded(
+                child: orders.isEmpty
+                    ? Center(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(24),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.receipt_long_outlined, size: 64, color: Colors.brown.shade300),
+                              const SizedBox(height: 14),
+                              Text(
+                                "No Orders in View",
+                                style: TextStyle(color: primaryColor, fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                orderProvider.searchQuery.isNotEmpty || orderProvider.selectedStatusFilter != null
+                                    ? "No orders match your filter criteria."
+                                    : "Ready to take customer orders? Create your first bakery order below!",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                              ),
+                              const SizedBox(height: 18),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  final formCtrl = Get.isRegistered<OrderFormController>()
+                                      ? Get.find<OrderFormController>()
+                                      : Get.put(OrderFormController());
+                                  formCtrl.resetForm();
+                                  Get.to(() => const OrderFormScreen());
+                                },
+                                icon: const Icon(Icons.add_shopping_cart, size: 18),
+                                label: const Text("Create First Order"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: primaryColor,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        itemCount: orders.length,
+                        itemBuilder: (context, index) {
+                          final order = orders[index];
+                          return Card(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
@@ -140,30 +175,36 @@ class OrdersScreen extends StatelessWidget {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        "Total: ${currencyFormat.format(order.totalAmount)}",
-                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryColor),
-                                      ),
-                                      GestureDetector(
-                                        onTap: () {
-                                          final nextPayment = order.paymentStatus == PaymentStatus.paid ? PaymentStatus.unpaid : PaymentStatus.paid;
-                                          orderProvider.updatePaymentStatus(order.id, nextPayment);
-                                        },
-                                        child: Text(
-                                          "Payment: ${order.paymentStatus.name.toUpperCase()}",
-                                          style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold,
-                                            color: order.paymentStatus == PaymentStatus.paid ? Colors.green.shade800 : Colors.red.shade800,
-                                            decoration: TextDecoration.underline,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        FittedBox(
+                                          fit: BoxFit.scaleDown,
+                                          child: Text(
+                                            "Total: ${currencyFormat.format(order.totalAmount)}",
+                                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: primaryColor),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                        GestureDetector(
+                                          onTap: () {
+                                            final nextPayment = order.paymentStatus == PaymentStatus.paid ? PaymentStatus.unpaid : PaymentStatus.paid;
+                                            orderProvider.updatePaymentStatus(order.id, nextPayment);
+                                          },
+                                          child: Text(
+                                            "Payment: ${order.paymentStatus.name.toUpperCase()}",
+                                            style: TextStyle(
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                              color: order.paymentStatus == PaymentStatus.paid ? Colors.green.shade800 : Colors.red.shade800,
+                                              decoration: TextDecoration.underline,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
+                                  const SizedBox(width: 8),
                                   ElevatedButton.icon(
                                     onPressed: () {
                                       Navigator.push(
@@ -173,11 +214,12 @@ class OrdersScreen extends StatelessWidget {
                                         ),
                                       );
                                     },
-                                    icon: const Icon(Icons.picture_as_pdf_rounded, size: 16),
-                                    label: const Text("View Invoice"),
+                                    icon: const Icon(Icons.picture_as_pdf_rounded, size: 15),
+                                    label: const Text("Invoice", style: TextStyle(fontSize: 12)),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.brown.shade800,
                                       foregroundColor: Colors.white,
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     ),
                                   ),
                                 ],
@@ -197,15 +239,18 @@ class OrdersScreen extends StatelessWidget {
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
           onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const OrderFormScreen()),
-            );
+            final formCtrl = Get.isRegistered<OrderFormController>()
+                ? Get.find<OrderFormController>()
+                : Get.put(OrderFormController());
+            formCtrl.resetForm();
+            Get.to(() => const OrderFormScreen());
           },
           icon: const Icon(Icons.add_shopping_cart),
           label: const Text("New Order"),
         ),
       ),
+    );
+      },
     );
   }
 

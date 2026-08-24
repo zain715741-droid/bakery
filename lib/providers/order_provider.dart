@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/order_model.dart';
 import '../models/recipe_model.dart';
+import '../services/database_service.dart';
 import 'inventory_provider.dart';
 import 'customer_provider.dart';
 
@@ -44,6 +45,33 @@ class OrderProvider extends ChangeNotifier {
     return _orders
         .where((o) => o.createdAt.year == now.year && o.status != OrderStatus.cancelled)
         .fold(0.0, (sum, o) => sum + o.totalAmount);
+  }
+
+  List<Map<String, dynamic>> get weeklySalesTrend {
+    final now = DateTime.now();
+    final List<Map<String, dynamic>> days = [];
+    const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    for (int i = 6; i >= 0; i--) {
+      final date = DateTime(now.year, now.month, now.day).subtract(Duration(days: i));
+      final dayName = dayNames[date.weekday - 1];
+
+      final total = _orders
+          .where((o) =>
+              o.createdAt.year == date.year &&
+              o.createdAt.month == date.month &&
+              o.createdAt.day == date.day &&
+              o.status != OrderStatus.cancelled)
+          .fold(0.0, (sum, o) => sum + o.totalAmount);
+
+      days.add({
+        'day': dayName,
+        'date': date,
+        'amount': total,
+      });
+    }
+
+    return days;
   }
 
   void setOrders(List<OrderModel> list) {
@@ -114,21 +142,28 @@ class OrderProvider extends ChangeNotifier {
     customerProvider.recordCustomerOrder(order.customerId, order.totalAmount);
 
     notifyListeners();
+
+    // 4. Save order to persistent storage
+    DatabaseService.instance.saveDocument('orders', order.id, order.toMap());
   }
 
   void updateOrderStatus(String orderId, OrderStatus newStatus) {
     final idx = _orders.indexWhere((o) => o.id == orderId);
     if (idx != -1) {
-      _orders[idx] = _orders[idx].copyWith(status: newStatus);
+      final updated = _orders[idx].copyWith(status: newStatus);
+      _orders[idx] = updated;
       notifyListeners();
+      DatabaseService.instance.saveDocument('orders', updated.id, updated.toMap());
     }
   }
 
   void updatePaymentStatus(String orderId, PaymentStatus paymentStatus) {
     final idx = _orders.indexWhere((o) => o.id == orderId);
     if (idx != -1) {
-      _orders[idx] = _orders[idx].copyWith(paymentStatus: paymentStatus);
+      final updated = _orders[idx].copyWith(paymentStatus: paymentStatus);
+      _orders[idx] = updated;
       notifyListeners();
+      DatabaseService.instance.saveDocument('orders', updated.id, updated.toMap());
     }
   }
 }

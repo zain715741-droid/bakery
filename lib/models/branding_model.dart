@@ -15,14 +15,13 @@ class BrandingModel {
     this.businessName = "Honey & Flour Artisanal Bakery",
     this.ownerName = "Eleanor Vance",
     this.welcomeMessage = "Freshly Baked with Love & Passion",
-    this.primaryColorValue = 0xFF8D6E63, // Warm Amber Brown
-    this.accentColorValue = 0xFFD81B60, // Rose Berry
+    this.primaryColorValue = 0xFF2C1810, // Rich Espresso
+    this.accentColorValue = 0xFFD4AF37, // Artisan Gold
     this.logoPath,
     this.ownerPhotoPath,
     this.currencySymbol = "£",
     this.vatRate = 0.20,
   });
-
   Color get primaryColor => Color(primaryColorValue);
   Color get accentColor => Color(accentColorValue);
 
@@ -51,26 +50,27 @@ class BrandingModel {
   }
 
   Map<String, dynamic> toMap() => {
-        'businessName': businessName,
-        'ownerName': ownerName,
-        'welcomeMessage': welcomeMessage,
-        'primaryColorValue': primaryColorValue,
-        'accentColorValue': accentColorValue,
-        'logoPath': logoPath,
-        'ownerPhotoPath': ownerPhotoPath,
-        'currencySymbol': currencySymbol,
-        'vatRate': vatRate,
-      };
+    'businessName': businessName,
+    'ownerName': ownerName,
+    'welcomeMessage': welcomeMessage,
+    'primaryColorValue': primaryColorValue,
+    'accentColorValue': accentColorValue,
+    'logoPath': logoPath,
+    'ownerPhotoPath': ownerPhotoPath,
+    'currencySymbol': currencySymbol,
+    'vatRate': vatRate,
+  };
 
   factory BrandingModel.fromMap(Map<String, dynamic> map) => BrandingModel(
-        businessName: map['businessName'] ?? "Honey & Flour Artisanal Bakery",
-        ownerName: map['ownerName'] ?? "Eleanor Vance",
-        welcomeMessage: map['welcomeMessage'] ?? "Freshly Baked with Love & Passion",
-        primaryColorValue: map['primaryColorValue'] ?? 0xFF8D6E63,
-        accentColorValue: map['accentColorValue'] ?? 0xFFD81B60,
-        logoPath: map['logoPath'],
-        ownerPhotoPath: map['ownerPhotoPath'],
-        currencySymbol: map['currencySymbol'] ?? "£",
-        vatRate: (map['vatRate'] as num?)?.toDouble() ?? 0.20,
-      );
+    businessName: map['businessName'] ?? "Honey & Flour Artisanal Bakery",
+    ownerName: map['ownerName'] ?? "Eleanor Vance",
+    welcomeMessage:
+        map['welcomeMessage'] ?? "Freshly Baked with Love & Passion",
+    primaryColorValue: map['primaryColorValue'] ?? 0xFF2C1810,
+    accentColorValue: map['accentColorValue'] ?? 0xFFD4AF37,
+    logoPath: map['logoPath'],
+    ownerPhotoPath: map['ownerPhotoPath'],
+    currencySymbol: map['currencySymbol'] ?? "£",
+    vatRate: (map['vatRate'] as num?)?.toDouble() ?? 0.20,
+  );
 }

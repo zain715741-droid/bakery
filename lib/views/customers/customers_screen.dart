@@ -184,7 +184,13 @@ class CustomersScreen extends StatelessWidget {
                           title: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(cust.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              Expanded(
+                                child: Text(
+                                  cust.name,
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
                               if (cust.postcode.isNotEmpty)
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -200,15 +206,27 @@ class CustomersScreen extends StatelessWidget {
                               Text("Phone: ${cust.phone} • Email: ${cust.email}"),
                               if (cust.address.isNotEmpty) Text("Address: ${cust.address}", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                               const SizedBox(height: 6),
-                              Row(
+                              Wrap(
+                                spacing: 12,
+                                runSpacing: 4,
+                                crossAxisAlignment: WrapCrossAlignment.center,
                                 children: [
-                                  Icon(Icons.shopping_bag_outlined, size: 14, color: primaryColor),
-                                  const SizedBox(width: 4),
-                                  Text("${cust.totalOrders} order(s)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryColor)),
-                                  const SizedBox(width: 12),
-                                  Icon(Icons.payments_outlined, size: 14, color: Colors.green.shade800),
-                                  const SizedBox(width: 4),
-                                  Text("Total Spent: ${currencyFormat.format(cust.totalSpent)}", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green.shade800)),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.shopping_bag_outlined, size: 14, color: primaryColor),
+                                      const SizedBox(width: 4),
+                                      Text("${cust.totalOrders} order(s)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: primaryColor)),
+                                    ],
+                                  ),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.payments_outlined, size: 14, color: Colors.green.shade800),
+                                      const SizedBox(width: 4),
+                                      Text("Total: ${currencyFormat.format(cust.totalSpent)}", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green.shade800)),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ],
