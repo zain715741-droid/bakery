@@ -75,6 +75,10 @@ class OrderModel {
   final String customerPhone;
   final String customerAddress;
   final String customerPostcode;
+  final double? latitude;
+  final double? longitude;
+  final String deliveryDriverName;
+  final String deliveryDriverPhone;
   final List<OrderItem> items;
   final OrderStatus status;
   final FulfillmentType fulfillment;
@@ -92,6 +96,10 @@ class OrderModel {
     required this.customerPhone,
     required this.customerAddress,
     required this.customerPostcode,
+    this.latitude,
+    this.longitude,
+    this.deliveryDriverName = '',
+    this.deliveryDriverPhone = '',
     required this.items,
     required this.status,
     required this.fulfillment,
@@ -114,6 +122,10 @@ class OrderModel {
     String? customerPhone,
     String? customerAddress,
     String? customerPostcode,
+    double? latitude,
+    double? longitude,
+    String? deliveryDriverName,
+    String? deliveryDriverPhone,
     List<OrderItem>? items,
     OrderStatus? status,
     FulfillmentType? fulfillment,
@@ -131,6 +143,10 @@ class OrderModel {
       customerPhone: customerPhone ?? this.customerPhone,
       customerAddress: customerAddress ?? this.customerAddress,
       customerPostcode: customerPostcode ?? this.customerPostcode,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      deliveryDriverName: deliveryDriverName ?? this.deliveryDriverName,
+      deliveryDriverPhone: deliveryDriverPhone ?? this.deliveryDriverPhone,
       items: items ?? this.items,
       status: status ?? this.status,
       fulfillment: fulfillment ?? this.fulfillment,
@@ -150,6 +166,10 @@ class OrderModel {
     'customerPhone': customerPhone,
     'customerAddress': customerAddress,
     'customerPostcode': customerPostcode,
+    'latitude': latitude,
+    'longitude': longitude,
+    'deliveryDriverName': deliveryDriverName,
+    'deliveryDriverPhone': deliveryDriverPhone,
     'items': items.map((i) => i.toMap()).toList(),
     'status': status.name,
     'fulfillment': fulfillment.name,
@@ -168,6 +188,10 @@ class OrderModel {
     customerPhone: map['customerPhone'] ?? '',
     customerAddress: map['customerAddress'] ?? '',
     customerPostcode: map['customerPostcode'] ?? '',
+    latitude: (map['latitude'] as num?)?.toDouble(),
+    longitude: (map['longitude'] as num?)?.toDouble(),
+    deliveryDriverName: map['deliveryDriverName'] ?? '',
+    deliveryDriverPhone: map['deliveryDriverPhone'] ?? '',
     items:
         (map['items'] as List<dynamic>?)
             ?.map((i) => OrderItem.fromMap(Map<String, dynamic>.from(i)))

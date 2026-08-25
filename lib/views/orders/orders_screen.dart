@@ -6,9 +6,9 @@ import '../../controllers/order_form_controller.dart';
 import '../../models/order_model.dart';
 import '../../providers/order_provider.dart';
 import '../../providers/branding_provider.dart';
-import '../widgets/role_guard.dart';
 import 'order_form_screen.dart';
 import 'invoice_preview_screen.dart';
+import '../widgets/delivery_tracking_map_dialog.dart';
 
 class OrdersScreen extends StatelessWidget {
   const OrdersScreen({super.key});
@@ -87,27 +87,9 @@ class OrdersScreen extends StatelessWidget {
                               Text(
                                 orderProvider.searchQuery.isNotEmpty || orderProvider.selectedStatusFilter != null
                                     ? "No orders match your filter criteria."
-                                    : "Ready to take customer orders? Create your first bakery order below!",
+                                    : "Tap the '+ New Order' button below to record your first order.",
                                 textAlign: TextAlign.center,
                                 style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
-                              ),
-                              const SizedBox(height: 18),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  final formCtrl = Get.isRegistered<OrderFormController>()
-                                      ? Get.find<OrderFormController>()
-                                      : Get.put(OrderFormController());
-                                  formCtrl.resetForm();
-                                  Get.to(() => const OrderFormScreen());
-                                },
-                                icon: const Icon(Icons.add_shopping_cart, size: 18),
-                                label: const Text("Create First Order"),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: primaryColor,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
                               ),
                             ],
                           ),
@@ -130,9 +112,35 @@ class OrdersScreen extends StatelessWidget {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    order.invoiceNumber,
-                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        order.invoiceNumber,
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      ),
+                                      if (order.notes.contains('[Online Storefront Order]')) ...[
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                                          decoration: BoxDecoration(
+                                            color: Colors.deepPurple.shade50,
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(color: Colors.deepPurple.shade200),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(Icons.public, size: 12, color: Colors.deepPurple.shade700),
+                                              const SizedBox(width: 3),
+                                              Text(
+                                                "Online Order",
+                                                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.deepPurple.shade700),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                                   ),
                                   PopupMenuButton<OrderStatus>(
                                     initialValue: order.status,
@@ -156,8 +164,35 @@ class OrdersScreen extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 6),
-                              Text("Customer: ${order.customerName} (${order.customerPostcode})", style: const TextStyle(fontWeight: FontWeight.w600)),
+                              Row(
+                                children: [
+                                  Icon(
+                                    order.fulfillment == FulfillmentType.delivery ? Icons.delivery_dining_rounded : Icons.storefront_rounded,
+                                    size: 16,
+                                    color: primaryColor,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    "Customer: ${order.customerName} (${order.customerPhone.isNotEmpty ? order.customerPhone : order.customerPostcode})",
+                                    style: const TextStyle(fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                              if (order.customerAddress.isNotEmpty) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  "Delivery to: ${order.customerAddress} (${order.customerPostcode})",
+                                  style: TextStyle(fontSize: 12, color: Colors.brown.shade700),
+                                ),
+                              ],
                               Text("Created: ${dateFormat.format(order.createdAt)}", style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                              if (order.notes.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  "Notes: ${order.notes.replaceAll('[Online Storefront Order]', '').trim()}",
+                                  style: TextStyle(fontSize: 12, fontStyle: FontStyle.italic, color: Colors.grey.shade700),
+                                ),
+                              ],
                               const SizedBox(height: 10),
 
                               // Items Summary
@@ -171,7 +206,7 @@ class OrdersScreen extends StatelessWidget {
                               const Divider(height: 1),
                               const SizedBox(height: 8),
 
-                              // Amount & Actions
+                              // Amount, Fulfillment Workflow & Invoice Action
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
@@ -205,6 +240,68 @@ class OrdersScreen extends StatelessWidget {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
+
+                                  // Quick Workflow Next Step Button
+                                  if (order.status == OrderStatus.pending)
+                                    OutlinedButton.icon(
+                                      onPressed: () => orderProvider.updateOrderStatus(order.id, OrderStatus.baking),
+                                      icon: const Icon(Icons.microwave_rounded, size: 14),
+                                      label: const Text("Start Baking", style: TextStyle(fontSize: 11)),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.orange.shade900,
+                                        side: BorderSide(color: Colors.orange.shade400),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                      ),
+                                    )
+                                  else if (order.status == OrderStatus.baking)
+                                    OutlinedButton.icon(
+                                      onPressed: () => orderProvider.updateOrderStatus(order.id, OrderStatus.ready),
+                                      icon: const Icon(Icons.check_circle_outline, size: 14),
+                                      label: const Text("Mark Ready", style: TextStyle(fontSize: 11)),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.blue.shade900,
+                                        side: BorderSide(color: Colors.blue.shade400),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                      ),
+                                    )
+                                  else if (order.status == OrderStatus.ready)
+                                    OutlinedButton.icon(
+                                      onPressed: () => orderProvider.updateOrderStatus(order.id, OrderStatus.completed),
+                                      icon: const Icon(Icons.task_alt_rounded, size: 14),
+                                      label: const Text("Complete", style: TextStyle(fontSize: 11)),
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: Colors.green.shade900,
+                                        side: BorderSide(color: Colors.green.shade400),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                                      ),
+                                    ),
+                                  const SizedBox(width: 6),
+
+                                  if (order.fulfillment == FulfillmentType.delivery) ...[
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        showDialog(
+                                          context: context,
+                                          builder: (_) => DeliveryTrackingMapDialog(
+                                            order: order,
+                                            primaryColor: primaryColor,
+                                            accentColor: branding.accentColor,
+                                            isDriverView: true,
+                                            orderProvider: orderProvider,
+                                          ),
+                                        );
+                                      },
+                                      icon: const Icon(Icons.map_rounded, size: 15),
+                                      label: const Text("Map & Nav", style: TextStyle(fontSize: 12)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.blue.shade800,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                  ],
+
                                   ElevatedButton.icon(
                                     onPressed: () {
                                       Navigator.push(
@@ -219,7 +316,7 @@ class OrdersScreen extends StatelessWidget {
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.brown.shade800,
                                       foregroundColor: Colors.white,
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                                     ),
                                   ),
                                 ],
@@ -233,21 +330,22 @@ class OrdersScreen extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: RoleGuard(
-        canAccess: (auth) => auth.permissions.canCreateOrders,
-        child: FloatingActionButton.extended(
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-          onPressed: () {
-            final formCtrl = Get.isRegistered<OrderFormController>()
-                ? Get.find<OrderFormController>()
-                : Get.put(OrderFormController());
-            formCtrl.resetForm();
-            Get.to(() => const OrderFormScreen());
-          },
-          icon: const Icon(Icons.add_shopping_cart),
-          label: const Text("New Order"),
-        ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        onPressed: () {
+          final formCtrl = Get.isRegistered<OrderFormController>()
+              ? Get.find<OrderFormController>()
+              : Get.put(OrderFormController());
+          formCtrl.resetForm();
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const OrderFormScreen()),
+          );
+        },
+        icon: const Icon(Icons.add_shopping_cart),
+        label: const Text("New Order"),
       ),
     );
       },

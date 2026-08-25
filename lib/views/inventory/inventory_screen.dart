@@ -127,14 +127,19 @@ class InventoryScreen extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () {
                       final name = nameController.text.trim();
-                      if (name.isEmpty) return;
+                      if (name.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Please enter ingredient name"), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
 
                       final newIng = IngredientModel(
                         id: ingredientToEdit?.id ?? 'ing_${DateTime.now().millisecondsSinceEpoch}',
                         name: name,
-                        category: categoryController.text.trim(),
+                        category: categoryController.text.trim().isEmpty ? 'General' : categoryController.text.trim(),
                         currentStock: double.tryParse(stockController.text) ?? 0.0,
-                        unit: unitController.text.trim(),
+                        unit: unitController.text.trim().isEmpty ? 'g' : unitController.text.trim(),
                         purchasePrice: double.tryParse(priceController.text) ?? 0.0,
                         purchaseQuantity: double.tryParse(qtyController.text) ?? 1.0,
                         supplierName: supplierController.text.trim(),
@@ -151,7 +156,11 @@ class InventoryScreen extends StatelessWidget {
                       // Recalculate recipe costs dynamically
                       recipeProvider.syncRecipeCostsWithIngredients(inventory.ingredients);
 
+                      final messenger = ScaffoldMessenger.of(context);
                       Navigator.pop(ctx);
+                      messenger.showSnackBar(
+                        SnackBar(content: Text("Ingredient '${newIng.name}' saved successfully!"), backgroundColor: Colors.green),
+                      );
                     },
                     child: const Text("Save Ingredient"),
                   ),
@@ -241,6 +250,8 @@ class InventoryScreen extends StatelessWidget {
                         Icon(Icons.inventory_2_outlined, size: 60, color: Colors.grey.shade400),
                         const SizedBox(height: 12),
                         Text("No stock items found", style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
+                        const SizedBox(height: 6),
+                        Text("Tap the '+ New Stock Item' button below to add stock.", style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
                       ],
                     ),
                   )
@@ -366,15 +377,13 @@ class InventoryScreen extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: RoleGuard(
-        canAccess: (auth) => auth.permissions.canEditInventory,
-        child: FloatingActionButton.extended(
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-          onPressed: () => _showIngredientModal(context),
-          icon: const Icon(Icons.add),
-          label: const Text("New Stock Item"),
-        ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        onPressed: () => _showIngredientModal(context),
+        icon: const Icon(Icons.add),
+        label: const Text("New Stock Item"),
       ),
     );
   }

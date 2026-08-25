@@ -35,6 +35,8 @@ class DashboardScreen extends StatelessWidget {
     final accentColor = branding.accentColor;
 
     return Stack(
+      fit: StackFit.expand,
+      clipBehavior: Clip.hardEdge,
       children: [
         // =====================================================
         // AMBIENT BACKGROUND GLOWS
@@ -53,10 +55,11 @@ class DashboardScreen extends StatelessWidget {
         // =====================================================
         // MAIN SCROLLABLE CONTENT
         // =====================================================
-        SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 24.0),
-          child: Column(
+        Positioned.fill(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 24.0),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // 1. Luxury Welcome & Branding Hero Card
@@ -483,6 +486,7 @@ class DashboardScreen extends StatelessWidget {
               ),
             ],
           ),
+        ),
         ),
       ],
     );

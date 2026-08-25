@@ -3,6 +3,10 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../providers/recipe_provider.dart';
 import '../../providers/branding_provider.dart';
+import 'package:get/get.dart';
+import '../../providers/inventory_provider.dart';
+import '../../providers/customer_provider.dart';
+import '../../data/initial_bakery_data.dart';
 import '../widgets/role_guard.dart';
 import 'recipe_detail_screen.dart';
 import 'recipe_form_screen.dart';
@@ -13,8 +17,11 @@ class RecipesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final recipeProvider = Provider.of<RecipeProvider>(context);
+    final inventoryProvider = Provider.of<InventoryProvider>(context, listen: false);
+    final customerProvider = Provider.of<CustomerProvider>(context, listen: false);
     final branding = Provider.of<BrandingProvider>(context).branding;
     final primaryColor = branding.primaryColor;
+    final accentColor = branding.accentColor;
     final currencyFormat = NumberFormat.currency(symbol: branding.currencySymbol, decimalDigits: 2);
 
     final recipes = recipeProvider.filteredRecipes;
@@ -89,6 +96,44 @@ class RecipesScreen extends StatelessWidget {
                         Text(
                           "No recipes found in catalog",
                           style: TextStyle(fontSize: 16, color: Colors.grey.shade600, fontWeight: FontWeight.w600),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          "Add your custom recipe or load the handcrafted artisanal menu.",
+                          style: TextStyle(fontSize: 13, color: Colors.grey.shade500),
+                        ),
+                        const SizedBox(height: 18),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            final defaultRecs = InitialBakeryData.defaultRecipes;
+                            final defaultIngs = InitialBakeryData.defaultIngredients;
+                            final defaultCusts = InitialBakeryData.defaultCustomers;
+                            for (final rec in defaultRecs) {
+                              recipeProvider.addRecipe(rec);
+                            }
+                            for (final ing in defaultIngs) {
+                              inventoryProvider.addIngredient(ing);
+                            }
+                            for (final cust in defaultCusts) {
+                              customerProvider.addCustomer(cust);
+                            }
+                            Get.snackbar(
+                              "Artisanal Menu Loaded",
+                              "${defaultRecs.length} Recipes & ${defaultIngs.length} Ingredients populated successfully!",
+                              backgroundColor: primaryColor,
+                              colorText: Colors.white,
+                              snackPosition: SnackPosition.BOTTOM,
+                              margin: const EdgeInsets.all(16),
+                            );
+                          },
+                          icon: Icon(Icons.auto_awesome_rounded, color: accentColor),
+                          label: const Text("Load 8 Handcrafted Bakery Recipes"),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
                         ),
                       ],
                     ),
@@ -204,20 +249,18 @@ class RecipesScreen extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: RoleGuard(
-        canAccess: (auth) => auth.permissions.canEditRecipes,
-        child: FloatingActionButton.extended(
-          backgroundColor: primaryColor,
-          foregroundColor: Colors.white,
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const RecipeFormScreen()),
-            );
-          },
-          icon: const Icon(Icons.add),
-          label: const Text("New Recipe"),
-        ),
+      floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
+        backgroundColor: primaryColor,
+        foregroundColor: Colors.white,
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const RecipeFormScreen()),
+          );
+        },
+        icon: const Icon(Icons.add),
+        label: const Text("New Recipe"),
       ),
     );
   }

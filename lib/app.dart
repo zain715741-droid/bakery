@@ -11,8 +11,13 @@ import 'providers/recipe_provider.dart';
 import 'providers/customer_provider.dart';
 import 'providers/order_provider.dart';
 import 'theme/luxury_theme.dart';
+import 'controllers/storefront_controller.dart';
+import 'views/storefront/storefront_screen.dart';
 import 'views/shell_screen.dart';
 import 'views/auth/login_screen.dart';
+import 'views/auth/signup_screen.dart';
+import 'views/orders/order_form_screen.dart';
+import 'views/recipes/recipe_form_screen.dart';
 
 class BakeryApp extends StatefulWidget {
   const BakeryApp({super.key});
@@ -39,6 +44,7 @@ class _BakeryAppState extends State<BakeryApp> {
     _recipeProvider = Get.put(RecipeProvider());
     _customerProvider = Get.put(CustomerProvider());
     _orderProvider = Get.put(OrderProvider());
+    Get.put(StorefrontController(), permanent: true);
     _initFuture = _initData();
   }
 
@@ -66,42 +72,85 @@ class _BakeryAppState extends State<BakeryApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider.value(value: _authProvider),
-        ChangeNotifierProvider.value(value: _brandingProvider),
-        ChangeNotifierProvider.value(value: _inventoryProvider),
-        ChangeNotifierProvider.value(value: _recipeProvider),
-        ChangeNotifierProvider.value(value: _customerProvider),
-        ChangeNotifierProvider.value(value: _orderProvider),
-      ],
-      child: Consumer<BrandingProvider>(
-        builder: (context, brandingProvider, _) {
-          final branding = brandingProvider.branding;
-          return GetMaterialApp(
-            title: branding.businessName,
+    return FutureBuilder<void>(
+      future: _initFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return MaterialApp(
             debugShowCheckedModeBanner: false,
-            theme: createLuxuryTheme(branding.primaryColor, branding.accentColor),
-            home: FutureBuilder<void>(
-              future: _initFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return Scaffold(
-                    body: Center(
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(branding.primaryColor),
+            home: Scaffold(
+              backgroundColor: const Color(0xFFFAF8F5),
+              body: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 68,
+                      height: 68,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF2C1810),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.bakery_dining_rounded, color: Color(0xFFD4AF37), size: 40),
+                    ),
+                    const SizedBox(height: 20),
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2C1810)),
+                    ),
+                    const SizedBox(height: 14),
+                    const Text(
+                      'Loading Artisan Bakery...',
+                      style: TextStyle(
+                        color: Color(0xFF2C1810),
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
                       ),
                     ),
-                  );
-                }
-                return _authProvider.isAuthenticated
-                    ? const ShellScreen()
-                    : const LoginScreen();
-              },
+                  ],
+                ),
+              ),
             ),
           );
-        },
-      ),
+        }
+
+        return MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: _authProvider),
+            ChangeNotifierProvider.value(value: _brandingProvider),
+            ChangeNotifierProvider.value(value: _inventoryProvider),
+            ChangeNotifierProvider.value(value: _recipeProvider),
+            ChangeNotifierProvider.value(value: _customerProvider),
+            ChangeNotifierProvider.value(value: _orderProvider),
+          ],
+          child: Consumer<BrandingProvider>(
+            builder: (context, brandingProvider, _) {
+              final branding = brandingProvider.branding;
+              return GetMaterialApp(
+                title: branding.businessName,
+                debugShowCheckedModeBanner: false,
+                theme: createLuxuryTheme(branding.primaryColor, branding.accentColor),
+                initialRoute: '/',
+                getPages: [
+                  GetPage(name: '/', page: () => const StorefrontScreen()),
+                  GetPage(name: '/StorefrontScreen', page: () => const StorefrontScreen()),
+                  GetPage(
+                    name: '/ShellScreen',
+                    page: () => _authProvider.isAuthenticated
+                        ? const ShellScreen()
+                        : const StorefrontScreen(),
+                  ),
+                  GetPage(name: '/LoginScreen', page: () => const LoginScreen()),
+                  GetPage(name: '/SignUpScreen', page: () => const SignUpScreen()),
+                  GetPage(name: '/OrderFormScreen', page: () => const OrderFormScreen()),
+                  GetPage(name: '/RecipeFormScreen', page: () => const RecipeFormScreen()),
+                ],
+                unknownRoute: GetPage(name: '/notfound', page: () => const StorefrontScreen()),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

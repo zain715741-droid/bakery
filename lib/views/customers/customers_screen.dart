@@ -12,7 +12,7 @@ class CustomersScreen extends StatelessWidget {
     final provider = Provider.of<CustomerProvider>(context, listen: false);
 
     final nameController = TextEditingController(text: customerToEdit?.name ?? '');
-    final phoneController = TextEditingController(text: customerToEdit?.phone ?? '+44 ');
+    final phoneController = TextEditingController(text: customerToEdit?.phone ?? '');
     final emailController = TextEditingController(text: customerToEdit?.email ?? '');
     final addressController = TextEditingController(text: customerToEdit?.address ?? '');
     final postcodeController = TextEditingController(text: customerToEdit?.postcode ?? '');
@@ -42,7 +42,7 @@ class CustomersScreen extends StatelessWidget {
                 const SizedBox(height: 16),
                 TextField(
                   controller: nameController,
-                  decoration: const InputDecoration(labelText: "Full Name *", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: "Full Name *", hintText: "e.g. John Smith", border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 10),
                 Row(
@@ -50,14 +50,14 @@ class CustomersScreen extends StatelessWidget {
                     Expanded(
                       child: TextField(
                         controller: phoneController,
-                        decoration: const InputDecoration(labelText: "Phone Number", border: OutlineInputBorder()),
+                        decoration: const InputDecoration(labelText: "Phone Number", hintText: "e.g. 07123 456789", border: OutlineInputBorder()),
                       ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: TextField(
                         controller: postcodeController,
-                        decoration: const InputDecoration(labelText: "UK Postcode *", border: OutlineInputBorder(), hintText: "e.g. SW1A 1AA"),
+                        decoration: const InputDecoration(labelText: "Postcode / Zip", border: OutlineInputBorder(), hintText: "e.g. SW1A 1AA"),
                       ),
                     ),
                   ],
@@ -65,17 +65,17 @@ class CustomersScreen extends StatelessWidget {
                 const SizedBox(height: 10),
                 TextField(
                   controller: emailController,
-                  decoration: const InputDecoration(labelText: "Email Address", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: "Email Address", hintText: "customer@example.com", border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: addressController,
-                  decoration: const InputDecoration(labelText: "Street Address", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: "Street Address", hintText: "123 High Street", border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 10),
                 TextField(
                   controller: notesController,
-                  decoration: const InputDecoration(labelText: "Customer Notes / Favorite Orders", border: OutlineInputBorder()),
+                  decoration: const InputDecoration(labelText: "Customer Notes / Preferences", border: OutlineInputBorder()),
                 ),
                 const SizedBox(height: 20),
                 SizedBox(
@@ -84,7 +84,12 @@ class CustomersScreen extends StatelessWidget {
                   child: ElevatedButton(
                     onPressed: () {
                       final name = nameController.text.trim();
-                      if (name.isEmpty) return;
+                      if (name.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text("Please enter customer name"), backgroundColor: Colors.red),
+                        );
+                        return;
+                      }
 
                       final newCust = CustomerModel(
                         id: customerToEdit?.id ?? 'cust_${DateTime.now().millisecondsSinceEpoch}',
@@ -104,7 +109,11 @@ class CustomersScreen extends StatelessWidget {
                         provider.addCustomer(newCust);
                       }
 
+                      final messenger = ScaffoldMessenger.of(context);
                       Navigator.pop(ctx);
+                      messenger.showSnackBar(
+                        SnackBar(content: Text("Customer '${newCust.name}' saved successfully!"), backgroundColor: Colors.green),
+                      );
                     },
                     child: const Text("Save Customer Profile"),
                   ),
@@ -135,7 +144,7 @@ class CustomersScreen extends StatelessWidget {
             child: TextField(
               onChanged: (val) => customerProvider.setSearchQuery(val),
               decoration: InputDecoration(
-                hintText: "Search customer by name, phone, or UK postcode...",
+                hintText: "Search customer by name, phone, or postcode...",
                 prefixIcon: const Icon(Icons.search_rounded),
                 suffixIcon: customerProvider.searchQuery.isNotEmpty
                     ? IconButton(
@@ -161,6 +170,8 @@ class CustomersScreen extends StatelessWidget {
                         Icon(Icons.people_outline_rounded, size: 60, color: Colors.grey.shade400),
                         const SizedBox(height: 12),
                         Text("No customers found", style: TextStyle(color: Colors.grey.shade600, fontSize: 16)),
+                        const SizedBox(height: 6),
+                        Text("Tap the '+ New Customer' button below to add a customer profile.", style: TextStyle(fontSize: 13, color: Colors.grey.shade500)),
                       ],
                     ),
                   )
@@ -243,6 +254,7 @@ class CustomersScreen extends StatelessWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: null,
         backgroundColor: primaryColor,
         foregroundColor: Colors.white,
         onPressed: () => _showCustomerModal(context),

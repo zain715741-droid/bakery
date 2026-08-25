@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../controllers/login_controller.dart';
 import '../../models/user_model.dart';
 import '../../providers/branding_provider.dart';
+import '../storefront/storefront_screen.dart';
 import 'signup_screen.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -431,6 +432,32 @@ class LoginScreen extends StatelessWidget {
             CrossAxisAlignment.start,
         children: [
 
+          // Back to Storefront Action
+          InkWell(
+            onTap: () => Get.offAll(() => const StorefrontScreen()),
+            borderRadius: BorderRadius.circular(8),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.arrow_back_rounded, size: 16, color: Color(0xFFA67C1E)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Back to Customer Storefront / Menu',
+                    style: GoogleFonts.outfit(
+                      color: const Color(0xFFA67C1E),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           // ====================================================
           // HEADER
           // ====================================================
@@ -537,7 +564,7 @@ class LoginScreen extends StatelessWidget {
 
           _textField(
             controller: controller.emailController,
-            hint: 'owner@bakery.co.uk',
+            hint: 'name@example.com',
             icon: Icons.person_outline_rounded,
             primaryColor: primaryColor,
           ),

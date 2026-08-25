@@ -7,8 +7,8 @@ import '../providers/auth_provider.dart';
 import '../views/shell_screen.dart';
 
 class LoginController extends GetxController {
-  final emailController = TextEditingController(text: 'owner@bakery.co.uk');
-  final passwordController = TextEditingController(text: 'bakery123');
+  final emailController = TextEditingController();
+  final passwordController = TextEditingController();
   final obscurePassword = true.obs;
   final selectedRole = UserRole.owner.obs;
 
@@ -21,16 +21,6 @@ class LoginController extends GetxController {
 
   void switchRole(UserRole role) {
     selectedRole.value = role;
-    final auth = Get.find<AuthProvider>();
-    auth.switchRole(role);
-
-    if (role == UserRole.owner) {
-      emailController.text = 'owner@bakery.co.uk';
-    } else if (role == UserRole.manager) {
-      emailController.text = 'manager@bakery.co.uk';
-    } else {
-      emailController.text = 'staff@bakery.co.uk';
-    }
   }
 
   Future<void> handleLogin() async {
@@ -61,16 +51,16 @@ class LoginController extends GetxController {
         return;
       }
       await auth.loginAsUser(user);
-      Get.offAll(() => const ShellScreen());
+      Get.offAll(() => const ShellScreen(), routeName: '/ShellScreen');
       return;
     }
 
-    // Default Owner Bootstrap for fresh setups
-    if (email.toLowerCase() == 'owner@bakery.co.uk' || auth.allUsers.isEmpty) {
+    // Default Owner Bootstrap for fresh first setup
+    if (auth.allUsers.isEmpty) {
       final ownerUser = UserModel(
-        id: 'u_owner_1',
-        email: email.isEmpty ? 'owner@bakery.co.uk' : email,
-        password: password.isEmpty ? 'bakery123' : password,
+        id: 'u_${DateTime.now().millisecondsSinceEpoch}',
+        email: email,
+        password: password,
         name: 'Bakery Owner',
         role: UserRole.owner,
         isApproved: true,
@@ -78,7 +68,7 @@ class LoginController extends GetxController {
       );
       await auth.addUser(ownerUser);
       await auth.loginAsUser(ownerUser);
-      Get.offAll(() => const ShellScreen());
+      Get.offAll(() => const ShellScreen(), routeName: '/ShellScreen');
       return;
     }
 

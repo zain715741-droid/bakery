@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
 import '../services/database_service.dart';
 
@@ -18,8 +20,8 @@ class AuthProvider extends ChangeNotifier {
 
   bool get isAuthenticated => _currentUser != null;
 
-  UserRole get currentRole => _currentUser?.role ?? UserRole.staff;
-  UserPermissions get permissions => _currentUser?.permissions ?? UserPermissions.forRole(UserRole.staff);
+  UserRole get currentRole => _currentUser?.role ?? UserRole.owner;
+  UserPermissions get permissions => _currentUser?.permissions ?? UserPermissions.forRole(UserRole.owner);
 
   bool get isOwner => currentRole == UserRole.owner;
   bool get isManager => currentRole == UserRole.manager;
@@ -48,17 +50,10 @@ class AuthProvider extends ChangeNotifier {
   }
 
   void switchRole(UserRole role) {
-    final matchingUser = _allUsers.firstWhere(
-      (u) => u.role == role && u.isApproved,
-      orElse: () => UserModel(
-        id: 'u_${role.name}',
-        email: '${role.name}@bakery.co.uk',
-        name: '${role.displayName} User',
-        role: role,
-        isApproved: true,
-      ),
-    );
-    loginAsUser(matchingUser);
+    final matchingUsers = _allUsers.where((u) => u.role == role && u.isApproved).toList();
+    if (matchingUsers.isNotEmpty) {
+      loginAsUser(matchingUsers.first);
+    }
   }
 
   Future<void> loginAsUser(UserModel user) async {
@@ -147,6 +142,44 @@ class AuthProvider extends ChangeNotifier {
       notifyListeners();
 
       await DatabaseService.instance.saveDocument('users', _allUsers[index].id, _allUsers[index].toMap());
+    }
+  }
+
+  Future<void> deleteUser(String userId) async {
+    _allUsers.removeWhere((u) => u.id == userId);
+    if (_currentUser?.id == userId) {
+      _currentUser = null;
+    }
+    notifyListeners();
+    await DatabaseService.instance.deleteDocument('users', userId);
+  }
+
+  Future<void> syncUsersFromCloud() async {
+    try {
+      final snap = await FirebaseFirestore.instance.collection('users').get().timeout(const Duration(seconds: 4));
+      final List<UserModel> cloudUsers = [];
+      for (final doc in snap.docs) {
+        cloudUsers.add(UserModel.fromMap(doc.data()));
+      }
+
+      if (cloudUsers.isNotEmpty) {
+        _allUsers = cloudUsers;
+        notifyListeners();
+
+        // Update local SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        final currentLocalIds = prefs.getStringList('sp_ids_users') ?? [];
+        for (final oldId in currentLocalIds) {
+          await prefs.remove('sp_users_$oldId');
+        }
+        final newIds = cloudUsers.map((u) => u.id).toList();
+        await prefs.setStringList('sp_ids_users', newIds);
+        for (final u in cloudUsers) {
+          await prefs.setString('sp_users_${u.id}', jsonEncode(u.toMap()));
+        }
+      }
+    } catch (e) {
+      debugPrint("Error syncing users from cloud: $e");
     }
   }
 }

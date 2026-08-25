@@ -1,11 +1,15 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
 import '../../controllers/order_form_controller.dart';
 import '../../models/order_model.dart';
 import '../../providers/customer_provider.dart';
 import '../../providers/branding_provider.dart';
+import '../../providers/recipe_provider.dart';
 
 class OrderFormScreen extends StatelessWidget {
   const OrderFormScreen({super.key});
@@ -15,8 +19,9 @@ class OrderFormScreen extends StatelessWidget {
     final controller = Get.isRegistered<OrderFormController>()
         ? Get.find<OrderFormController>()
         : Get.put(OrderFormController());
-    final branding = Get.find<BrandingProvider>().branding;
-    final customers = Get.find<CustomerProvider>().customers;
+    final branding = Provider.of<BrandingProvider>(context).branding;
+    final customerProvider = Provider.of<CustomerProvider>(context);
+    final customers = customerProvider.customers;
     final primaryColor = branding.primaryColor;
     final currencyFormat = NumberFormat.currency(symbol: branding.currencySymbol, decimalDigits: 2);
 
@@ -35,13 +40,16 @@ class OrderFormScreen extends StatelessWidget {
             const Text("1. Select Customer", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             Obx(() => DropdownButtonFormField<String>(
-                  initialValue: controller.selectedCustomerId.value,
-                  decoration: const InputDecoration(labelText: "Customer (Optional - leave for Walk-in)", border: OutlineInputBorder()),
+                  key: const ValueKey('order_customer_select'),
+                  value: controller.selectedCustomerId.value,
+                  decoration: const InputDecoration(labelText: "Customer (Optional)", border: OutlineInputBorder()),
                   items: [
-                    const DropdownMenuItem(value: null, child: Text("Walk-in / Counter Customer")),
-                    ...customers.map((c) => DropdownMenuItem(value: c.id, child: Text("${c.name} (${c.postcode})"))),
+                    const DropdownMenuItem<String>(value: 'walk_in', child: Text("Walk-in / Counter Customer")),
+                    ...customers.map((c) => DropdownMenuItem<String>(value: c.id, child: Text("${c.name} (${c.postcode})"))),
                   ],
-                  onChanged: (val) => controller.selectedCustomerId.value = val,
+                  onChanged: (val) {
+                    if (val != null) controller.selectedCustomerId.value = val;
+                  },
                 )),
             const SizedBox(height: 20),
 
@@ -51,7 +59,16 @@ class OrderFormScreen extends StatelessWidget {
               children: [
                 const Text("2. Order Items", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 ElevatedButton.icon(
-                  onPressed: controller.addItemDialog,
+                  onPressed: () async {
+                    final recipeProvider = Provider.of<RecipeProvider>(context, listen: false);
+                    final item = await showDialog<OrderItem>(
+                      context: context,
+                      builder: (ctx) => AddProductDialog(recipes: recipeProvider.recipes),
+                    );
+                    if (item != null) {
+                      controller.orderItems.add(item);
+                    }
+                  },
                   icon: const Icon(Icons.add, size: 16),
                   label: const Text("Add Product"),
                   style: ElevatedButton.styleFrom(backgroundColor: primaryColor, foregroundColor: Colors.white),
@@ -104,7 +121,7 @@ class OrderFormScreen extends StatelessWidget {
               children: [
                 Expanded(
                   child: Obx(() => DropdownButtonFormField<FulfillmentType>(
-                        initialValue: controller.fulfillment.value,
+                        value: controller.fulfillment.value,
                         decoration: const InputDecoration(labelText: "Fulfillment", border: OutlineInputBorder()),
                         items: const [
                           DropdownMenuItem(value: FulfillmentType.collection, child: Text("Collection")),
@@ -118,7 +135,7 @@ class OrderFormScreen extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Obx(() => DropdownButtonFormField<PaymentStatus>(
-                        initialValue: controller.paymentStatus.value,
+                        value: controller.paymentStatus.value,
                         decoration: const InputDecoration(labelText: "Payment", border: OutlineInputBorder()),
                         items: const [
                           DropdownMenuItem(value: PaymentStatus.unpaid, child: Text("Unpaid (Invoice)")),
@@ -168,7 +185,7 @@ class OrderFormScreen extends StatelessWidget {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: controller.submitOrder,
+                onPressed: () => controller.submitOrder(context),
                 style: ElevatedButton.styleFrom(backgroundColor: primaryColor, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 child: const Text("Confirm & Submit Order", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
@@ -176,6 +193,141 @@ class OrderFormScreen extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class AddProductDialog extends StatefulWidget {
+  final List<dynamic> recipes;
+
+  const AddProductDialog({super.key, required this.recipes});
+
+  @override
+  State<AddProductDialog> createState() => _AddProductDialogState();
+}
+
+class _AddProductDialogState extends State<AddProductDialog> {
+  late bool _isCustom;
+  String? _selectedRecipeId;
+  late final TextEditingController _customNameController;
+  late final TextEditingController _customPriceController;
+  late final TextEditingController _qtyController;
+
+  @override
+  void initState() {
+    super.initState();
+    _isCustom = widget.recipes.isEmpty;
+    _selectedRecipeId = widget.recipes.isNotEmpty ? widget.recipes.first.id : null;
+    _customNameController = TextEditingController();
+    _customPriceController = TextEditingController(text: '3.50');
+    _qtyController = TextEditingController(text: '1');
+  }
+
+  @override
+  void dispose() {
+    _customNameController.dispose();
+    _customPriceController.dispose();
+    _qtyController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final qty = int.tryParse(_qtyController.text) ?? 1;
+    if (qty <= 0) return;
+
+    if (!_isCustom && widget.recipes.isNotEmpty && _selectedRecipeId != null) {
+      final recipe = widget.recipes.firstWhere((r) => r.id == _selectedRecipeId, orElse: () => widget.recipes.first);
+      Navigator.pop(
+        context,
+        OrderItem(
+          recipeId: recipe.id,
+          recipeName: recipe.title,
+          quantity: qty,
+          unitPrice: recipe.sellingPrice,
+        ),
+      );
+    } else {
+      final name = _customNameController.text.trim();
+      if (name.isEmpty) return;
+      final price = double.tryParse(_customPriceController.text) ?? 3.50;
+
+      Navigator.pop(
+        context,
+        OrderItem(
+          recipeId: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+          recipeName: name,
+          quantity: qty,
+          unitPrice: price,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text("Add Product to Order"),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.recipes.isNotEmpty) ...[
+              Row(
+                children: [
+                  ChoiceChip(
+                    label: const Text("From Catalog"),
+                    selected: !_isCustom,
+                    onSelected: (val) => setState(() => _isCustom = !val),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text("Custom Item"),
+                    selected: _isCustom,
+                    onSelected: (val) => setState(() => _isCustom = val),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+            ],
+            if (!_isCustom && widget.recipes.isNotEmpty) ...[
+              DropdownButtonFormField<String>(
+                key: const ValueKey('catalog_dropdown'),
+                initialValue: _selectedRecipeId,
+                decoration: const InputDecoration(labelText: "Select Bakery Product", border: OutlineInputBorder()),
+                items: widget.recipes.map((r) => DropdownMenuItem<String>(value: r.id as String, child: Text("${r.title} (£${r.sellingPrice.toStringAsFixed(2)})"))).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedRecipeId = val);
+                },
+              ),
+              const SizedBox(height: 12),
+            ] else ...[
+              TextField(
+                key: const ValueKey('custom_name_field'),
+                controller: _customNameController,
+                decoration: const InputDecoration(labelText: "Product Name *", hintText: "e.g. Sourdough Loaf", border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                key: const ValueKey('custom_price_field'),
+                controller: _customPriceController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: "Unit Price (£) *", border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 12),
+            ],
+            TextField(
+              controller: _qtyController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: "Quantity", border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+        ElevatedButton(onPressed: _submit, child: const Text("Add Item")),
+      ],
     );
   }
 }

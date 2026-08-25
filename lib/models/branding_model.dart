@@ -12,9 +12,9 @@ class BrandingModel {
   final double vatRate; // e.g. 0.20 for 20% VAT
 
   BrandingModel({
-    this.businessName = "Honey & Flour Artisanal Bakery",
-    this.ownerName = "Eleanor Vance",
-    this.welcomeMessage = "Freshly Baked with Love & Passion",
+    this.businessName = "Artisan Bakery",
+    this.ownerName = "Owner",
+    this.welcomeMessage = "Freshly Baked Artisanal Delicacies",
     this.primaryColorValue = 0xFF2C1810, // Rich Espresso
     this.accentColorValue = 0xFFD4AF37, // Artisan Gold
     this.logoPath,
@@ -62,10 +62,10 @@ class BrandingModel {
   };
 
   factory BrandingModel.fromMap(Map<String, dynamic> map) => BrandingModel(
-    businessName: map['businessName'] ?? "Honey & Flour Artisanal Bakery",
-    ownerName: map['ownerName'] ?? "Eleanor Vance",
+    businessName: map['businessName'] ?? "Artisan Bakery",
+    ownerName: map['ownerName'] ?? "Owner",
     welcomeMessage:
-        map['welcomeMessage'] ?? "Freshly Baked with Love & Passion",
+        map['welcomeMessage'] ?? "Freshly Baked Artisanal Delicacies",
     primaryColorValue: map['primaryColorValue'] ?? 0xFF2C1810,
     accentColorValue: map['accentColorValue'] ?? 0xFFD4AF37,
     logoPath: map['logoPath'],

@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -45,7 +47,7 @@ class UserManagementController extends GetxController {
               TextField(controller: passwordController, decoration: const InputDecoration(labelText: "Password", prefixIcon: Icon(Icons.lock_outline_rounded))),
               const SizedBox(height: 12),
               Obx(() => DropdownButtonFormField<UserRole>(
-                    initialValue: selectedRole.value,
+                    value: selectedRole.value,
                     decoration: const InputDecoration(labelText: "Role"),
                     items: UserRole.values.map((r) => DropdownMenuItem(value: r, child: Text("${r.displayName} Role"))).toList(),
                     onChanged: (val) {
@@ -60,7 +62,10 @@ class UserManagementController extends GetxController {
                   onPressed: () async {
                     final name = nameController.text.trim();
                     final email = emailController.text.trim();
-                    if (name.isEmpty || email.isEmpty) return;
+                    if (name.isEmpty || email.isEmpty) {
+                      Get.snackbar("Missing Information", "Please enter both name and email.", backgroundColor: Colors.red.shade900, colorText: Colors.white);
+                      return;
+                    }
 
                     final newUser = UserModel(
                       id: 'u_${DateTime.now().millisecondsSinceEpoch}',
@@ -98,9 +103,9 @@ class UserManagementController extends GetxController {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         title: Row(
           children: [
-            const Icon(Icons.check_circle_rounded, color: Colors.green, size: 24),
-            const SizedBox(width: 10),
-            Text("Approve User", style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold, fontSize: 18)),
+            Icon(Icons.verified_user_rounded, color: Colors.green.shade700, size: 24),
+            const SizedBox(width: 8),
+            Text("Approve User", style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold)),
           ],
         ),
         content: Column(
@@ -114,7 +119,7 @@ class UserManagementController extends GetxController {
             ],
             const SizedBox(height: 14),
             Obx(() => DropdownButtonFormField<UserRole>(
-                  initialValue: assignedRole.value,
+                  value: assignedRole.value,
                   decoration: const InputDecoration(labelText: "Assigned Role"),
                   items: [UserRole.staff, UserRole.manager, UserRole.owner].map((r) => DropdownMenuItem(value: r, child: Text(r.displayName))).toList(),
                   onChanged: (val) {

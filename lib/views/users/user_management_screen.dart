@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import 'package:provider/provider.dart';
 import '../../controllers/user_management_controller.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
@@ -16,8 +17,7 @@ class UserManagementScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(UserManagementController());
-    final auth = Get.find<AuthProvider>();
-    final branding = Get.find<BrandingProvider>().branding;
+    final branding = Provider.of<BrandingProvider>(context).branding;
     final primaryColor = branding.primaryColor;
     final accentColor = branding.accentColor;
 
@@ -27,37 +27,54 @@ class UserManagementScreen extends StatelessWidget {
         backgroundColor: LuxuryColors.cream,
         body: Center(child: Text("User Management Access Restricted to Bakery Owner.", style: GoogleFonts.outfit(fontWeight: FontWeight.bold))),
       ),
-      child: Scaffold(
-        backgroundColor: LuxuryColors.cream,
-        body: Column(
-          children: [
-            // Top Header Card
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [primaryColor, Color.alphaBlend(Colors.black38, primaryColor)]),
-                  borderRadius: BorderRadius.circular(22),
-                  border: Border.all(color: accentColor.withValues(alpha: 0.35), width: 1.5),
-                ),
-                padding: const EdgeInsets.all(20.0),
-                child: Row(
-                  children: [
-                    CircleAvatar(backgroundColor: accentColor.withValues(alpha: 0.2), child: Icon(Icons.admin_panel_settings_rounded, color: accentColor)),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Artisan Owner Control Center", style: GoogleFonts.playfairDisplay(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17)),
-                          Text("Approve new user signups and assign permissions.", style: GoogleFonts.outfit(color: Colors.white.withValues(alpha: 0.85), fontSize: 12)),
-                        ],
-                      ),
+      child: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          return Scaffold(
+            backgroundColor: LuxuryColors.cream,
+            body: Column(
+              children: [
+                // Top Header Card
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(colors: [primaryColor, Color.alphaBlend(Colors.black38, primaryColor)]),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: accentColor.withValues(alpha: 0.35), width: 1.5),
                     ),
-                  ],
+                    padding: const EdgeInsets.all(20.0),
+                    child: Row(
+                      children: [
+                        CircleAvatar(backgroundColor: accentColor.withValues(alpha: 0.2), child: Icon(Icons.admin_panel_settings_rounded, color: accentColor)),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("Artisan Owner Control Center", style: GoogleFonts.playfairDisplay(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17)),
+                              Text("Approve new user signups and assign permissions.", style: GoogleFonts.outfit(color: Colors.white.withValues(alpha: 0.85), fontSize: 12)),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.cloud_sync_rounded, color: Colors.white),
+                          tooltip: "Sync Users from Cloud",
+                          onPressed: () async {
+                            await auth.syncUsersFromCloud();
+                            Get.snackbar(
+                              "Users Synced",
+                              "Refreshed team accounts from Firebase Cloud!",
+                              backgroundColor: primaryColor,
+                              colorText: Colors.white,
+                              snackPosition: SnackPosition.BOTTOM,
+                              margin: const EdgeInsets.all(16),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
 
             // Tab Selector Pill
             Padding(
@@ -84,7 +101,20 @@ class UserManagementScreen extends StatelessWidget {
                 if (controller.selectedTab.value == 0) {
                   // Active Team
                   final users = auth.approvedUsers;
-                  if (users.isEmpty) return Center(child: Text("No active users.", style: GoogleFonts.outfit(color: Colors.grey)));
+                  if (users.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.people_outline_rounded, size: 50, color: Colors.grey.shade400),
+                          const SizedBox(height: 10),
+                          Text("No active staff users yet.", style: GoogleFonts.outfit(color: Colors.grey.shade600, fontSize: 14)),
+                          const SizedBox(height: 6),
+                          Text("Tap '+ Add Direct Staff' below to register team members.", style: GoogleFonts.outfit(color: Colors.grey.shade500, fontSize: 12)),
+                        ],
+                      ),
+                    );
+                  }
 
                   return ListView.builder(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -121,16 +151,41 @@ class UserManagementScreen extends StatelessWidget {
                             ],
                           ),
                           subtitle: Text("${user.email} • Role: ${user.role.displayName}", style: GoogleFonts.outfit(fontSize: 12, color: LuxuryColors.textSecondary)),
-                          trailing: user.role == UserRole.owner
-                              ? Text("Owner", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: primaryColor))
-                              : DropdownButton<UserRole>(
-                                  value: user.role,
-                                  underline: const SizedBox(),
-                                  onChanged: (newRole) {
-                                    if (newRole != null) auth.updateUserRole(user.id, newRole);
-                                  },
-                                  items: UserRole.values.map((r) => DropdownMenuItem(value: r, child: Text(r.displayName, style: GoogleFonts.outfit(fontSize: 13)))).toList(),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              DropdownButton<UserRole>(
+                                value: user.role,
+                                underline: const SizedBox(),
+                                onChanged: isCurrent && user.role == UserRole.owner
+                                    ? null
+                                    : (newRole) {
+                                        if (newRole != null) auth.updateUserRole(user.id, newRole);
+                                      },
+                                items: UserRole.values
+                                    .map((r) => DropdownMenuItem(
+                                          value: r,
+                                          child: Text(
+                                            r.displayName,
+                                            style: GoogleFonts.outfit(
+                                              fontSize: 13,
+                                              fontWeight: r == user.role ? FontWeight.bold : FontWeight.normal,
+                                              color: r == UserRole.owner ? primaryColor : Colors.black87,
+                                            ),
+                                          ),
+                                        ))
+                                    .toList(),
+                              ),
+                              if (!isCurrent) ...[
+                                const SizedBox(width: 4),
+                                IconButton(
+                                  icon: Icon(Icons.delete_outline_rounded, color: Colors.red.shade400, size: 20),
+                                  tooltip: 'Delete User',
+                                  onPressed: () => _confirmDeleteUser(context, user, auth, primaryColor),
                                 ),
+                              ],
+                            ],
+                          ),
                         ),
                       );
                     },
@@ -222,15 +277,18 @@ class UserManagementScreen extends StatelessWidget {
           ],
         ),
         floatingActionButton: FloatingActionButton.extended(
+          heroTag: null,
           backgroundColor: primaryColor,
           foregroundColor: Colors.white,
           onPressed: controller.showAddUserModal,
           icon: Icon(Icons.person_add_alt_1_rounded, color: accentColor),
           label: Text("Add Direct Staff", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
         ),
-      ),
-    );
-  }
+      );
+    },
+  ),
+);
+}
 
   Widget _buildTabButton(String title, int index, UserManagementController controller, Color primaryColor, {int badgeCount = 0}) {
     final isSelected = controller.selectedTab.value == index;
@@ -262,6 +320,41 @@ class UserManagementScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _confirmDeleteUser(BuildContext context, UserModel user, AuthProvider auth, Color primaryColor) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red.shade700, size: 26),
+            const SizedBox(width: 10),
+            Text("Delete User Account?", style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold, fontSize: 18)),
+          ],
+        ),
+        content: Text(
+          "Are you sure you want to remove ${user.name} (${user.email}) from the bakery team?",
+          style: GoogleFonts.outfit(fontSize: 14, color: Colors.black87),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text("Cancel", style: GoogleFonts.outfit(color: Colors.grey.shade700)),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              auth.deleteUser(user.id);
+              Get.snackbar("User Removed", "${user.name}'s account has been deleted.", backgroundColor: primaryColor, colorText: Colors.white);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red.shade700, foregroundColor: Colors.white),
+            child: Text("Delete", style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+          ),
+        ],
       ),
     );
   }

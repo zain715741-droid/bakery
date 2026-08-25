@@ -395,15 +395,15 @@ ThemeData createLuxuryTheme(Color primaryColor, Color accentColor) {
 
         shadowColor: primaryColor.withValues(alpha: 0.25),
 
-        minimumSize: const Size(double.infinity, 54),
+        minimumSize: const Size(64, 46),
 
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
 
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
 
         textStyle: GoogleFonts.outfit(
           fontWeight: FontWeight.w700,
-          fontSize: 15,
+          fontSize: 14,
           letterSpacing: 0.3,
         ),
       ),
@@ -416,11 +416,11 @@ ThemeData createLuxuryTheme(Color primaryColor, Color accentColor) {
       style: OutlinedButton.styleFrom(
         foregroundColor: primaryColor,
 
-        minimumSize: const Size(double.infinity, 52),
+        minimumSize: const Size(64, 46),
 
         side: BorderSide(color: accentColor, width: 1.2),
 
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
 
         textStyle: GoogleFonts.outfit(
           fontWeight: FontWeight.w600,

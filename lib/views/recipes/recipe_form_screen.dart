@@ -64,20 +64,20 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
 
     _titleController = TextEditingController(text: r?.title ?? '');
     _categoryController = TextEditingController(text: r?.category ?? 'Cakes');
-    _prepTimeController = TextEditingController(text: r?.prepTimeMins.toString() ?? '20');
-    _bakeTimeController = TextEditingController(text: r?.bakeTimeMins.toString() ?? '30');
-    _tempController = TextEditingController(text: r?.bakingTempC.toString() ?? '180');
-    _servingsController = TextEditingController(text: r?.yieldServings.toString() ?? '12');
-    _sellingPriceController = TextEditingController(text: r?.sellingPrice.toString() ?? '3.50');
+    _prepTimeController = TextEditingController(text: r != null ? r.prepTimeMins.toString() : '20');
+    _bakeTimeController = TextEditingController(text: r != null ? r.bakeTimeMins.toString() : '30');
+    _tempController = TextEditingController(text: r != null ? r.bakingTempC.toString() : '180');
+    _servingsController = TextEditingController(text: r != null ? r.yieldServings.toString() : '12');
+    _sellingPriceController = TextEditingController(text: r != null ? r.sellingPrice.toString() : '3.50');
     _notesController = TextEditingController(text: r?.notes ?? '');
 
-    _caloriesController = TextEditingController(text: r?.nutritionalInfo.calories.toString() ?? '300');
-    _proteinController = TextEditingController(text: r?.nutritionalInfo.protein.toString() ?? '5.0');
-    _carbsController = TextEditingController(text: r?.nutritionalInfo.carbohydrates.toString() ?? '40.0');
-    _fatController = TextEditingController(text: r?.nutritionalInfo.fat.toString() ?? '15.0');
-    _sugarController = TextEditingController(text: r?.nutritionalInfo.sugar.toString() ?? '20.0');
-    _saltController = TextEditingController(text: r?.nutritionalInfo.salt.toString() ?? '0.2');
-    _fibreController = TextEditingController(text: r?.nutritionalInfo.fibre.toString() ?? '2.0');
+    _caloriesController = TextEditingController(text: r != null ? r.nutritionalInfo.calories.toString() : '300');
+    _proteinController = TextEditingController(text: r != null ? r.nutritionalInfo.protein.toString() : '5.0');
+    _carbsController = TextEditingController(text: r != null ? r.nutritionalInfo.carbohydrates.toString() : '40.0');
+    _fatController = TextEditingController(text: r != null ? r.nutritionalInfo.fat.toString() : '15.0');
+    _sugarController = TextEditingController(text: r != null ? r.nutritionalInfo.sugar.toString() : '20.0');
+    _saltController = TextEditingController(text: r != null ? r.nutritionalInfo.salt.toString() : '0.2');
+    _fibreController = TextEditingController(text: r != null ? r.nutritionalInfo.fibre.toString() : '2.0');
 
     if (r != null) {
       _selectedIngredients = List.from(r.ingredients);
@@ -113,90 +113,21 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
     super.dispose();
   }
 
-  void _addIngredientDialog() {
+  Future<void> _addIngredientDialog() async {
     final inventory = Provider.of<InventoryProvider>(context, listen: false);
-    if (inventory.ingredients.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("No ingredients available in inventory. Add ingredients first!")),
-      );
-      return;
-    }
-
-    String selectedIngId = inventory.ingredients.first.id;
-    final qtyController = TextEditingController(text: '100');
-
-    showDialog(
+    final item = await showDialog<RecipeIngredientItem>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          final selectedIng = inventory.ingredients.firstWhere((i) => i.id == selectedIngId);
-
-          return AlertDialog(
-            title: const Text("Add Recipe Ingredient"),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: selectedIngId,
-                  decoration: const InputDecoration(labelText: "Select Ingredient"),
-                  items: inventory.ingredients.map((ing) {
-                    return DropdownMenuItem(
-                      value: ing.id,
-                      child: Text("${ing.name} (${ing.unit})"),
-                    );
-                  }).toList(),
-                  onChanged: (val) {
-                    if (val != null) setDialogState(() => selectedIngId = val);
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: qtyController,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    labelText: "Quantity (${selectedIng.unit})",
-                    border: const OutlineInputBorder(),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
-              ElevatedButton(
-                onPressed: () {
-                  final qty = double.tryParse(qtyController.text) ?? 0.0;
-                  if (qty > 0) {
-                    setState(() {
-                      _selectedIngredients.add(
-                        RecipeIngredientItem(
-                          ingredientId: selectedIng.id,
-                          name: selectedIng.name,
-                          quantity: qty,
-                          unit: selectedIng.unit,
-                          unitCost: selectedIng.costPerUnit,
-                        ),
-                      );
-                    });
-                    Navigator.pop(ctx);
-                  }
-                },
-                child: const Text("Add"),
-              ),
-            ],
-          );
-        },
-      ),
+      builder: (ctx) => AddRecipeIngredientDialog(ingredients: inventory.ingredients),
     );
+    if (item != null) {
+      setState(() {
+        _selectedIngredients.add(item);
+      });
+    }
   }
 
   void _saveRecipe() {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedIngredients.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Please add at least 1 ingredient to the recipe.")),
-      );
-      return;
-    }
 
     final recipeProvider = Provider.of<RecipeProvider>(context, listen: false);
 
@@ -232,8 +163,9 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
       recipeProvider.addRecipe(newRecipe);
     }
 
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
+    messenger.showSnackBar(
       SnackBar(content: Text("Recipe '${newRecipe.title}' saved successfully!"), backgroundColor: Colors.green),
     );
   }
@@ -472,6 +404,168 @@ class _RecipeFormScreenState extends State<RecipeFormScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class AddRecipeIngredientDialog extends StatefulWidget {
+  final List<dynamic> ingredients;
+
+  const AddRecipeIngredientDialog({super.key, required this.ingredients});
+
+  @override
+  State<AddRecipeIngredientDialog> createState() => _AddRecipeIngredientDialogState();
+}
+
+class _AddRecipeIngredientDialogState extends State<AddRecipeIngredientDialog> {
+  late bool _isCustom;
+  String? _selectedIngId;
+  late final TextEditingController _customNameController;
+  late final TextEditingController _customUnitController;
+  late final TextEditingController _customCostController;
+  late final TextEditingController _qtyController;
+
+  @override
+  void initState() {
+    super.initState();
+    _isCustom = widget.ingredients.isEmpty;
+    _selectedIngId = widget.ingredients.isNotEmpty ? widget.ingredients.first.id : null;
+    _customNameController = TextEditingController();
+    _customUnitController = TextEditingController(text: 'g');
+    _customCostController = TextEditingController(text: '0.01');
+    _qtyController = TextEditingController(text: '100');
+  }
+
+  @override
+  void dispose() {
+    _customNameController.dispose();
+    _customUnitController.dispose();
+    _customCostController.dispose();
+    _qtyController.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final qty = double.tryParse(_qtyController.text) ?? 0.0;
+    if (qty <= 0) return;
+
+    if (!_isCustom && widget.ingredients.isNotEmpty && _selectedIngId != null) {
+      final ing = widget.ingredients.firstWhere((i) => i.id == _selectedIngId, orElse: () => widget.ingredients.first);
+      Navigator.pop(
+        context,
+        RecipeIngredientItem(
+          ingredientId: ing.id,
+          name: ing.name,
+          quantity: qty,
+          unit: ing.unit,
+          unitCost: ing.costPerUnit,
+        ),
+      );
+    } else {
+      final name = _customNameController.text.trim();
+      if (name.isEmpty) return;
+      final unit = _customUnitController.text.trim().isEmpty ? 'g' : _customUnitController.text.trim();
+      final cost = double.tryParse(_customCostController.text) ?? 0.01;
+
+      Navigator.pop(
+        context,
+        RecipeIngredientItem(
+          ingredientId: 'custom_${DateTime.now().millisecondsSinceEpoch}',
+          name: name,
+          quantity: qty,
+          unit: unit,
+          unitCost: cost,
+        ),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasStock = widget.ingredients.isNotEmpty;
+
+    return AlertDialog(
+      title: const Text("Add Recipe Ingredient"),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (hasStock) ...[
+              Row(
+                children: [
+                  ChoiceChip(
+                    label: const Text("From Stock"),
+                    selected: !_isCustom,
+                    onSelected: (val) => setState(() => _isCustom = !val),
+                  ),
+                  const SizedBox(width: 8),
+                  ChoiceChip(
+                    label: const Text("Custom Item"),
+                    selected: _isCustom,
+                    onSelected: (val) => setState(() => _isCustom = val),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+            ],
+            if (!_isCustom && hasStock) ...[
+              DropdownButtonFormField<String>(
+                key: const ValueKey('ingredient_dropdown'),
+                initialValue: _selectedIngId,
+                decoration: const InputDecoration(labelText: "Select Ingredient", border: OutlineInputBorder()),
+                items: widget.ingredients.map((ing) {
+                  return DropdownMenuItem<String>(
+                    value: ing.id as String,
+                    child: Text("${ing.name} (${ing.unit})"),
+                  );
+                }).toList(),
+                onChanged: (val) {
+                  if (val != null) setState(() => _selectedIngId = val);
+                },
+              ),
+              const SizedBox(height: 12),
+            ] else ...[
+              TextField(
+                key: const ValueKey('custom_ing_name'),
+                controller: _customNameController,
+                decoration: const InputDecoration(labelText: "Ingredient Name *", hintText: "e.g. Flour", border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      key: const ValueKey('custom_ing_unit'),
+                      controller: _customUnitController,
+                      decoration: const InputDecoration(labelText: "Unit (g, ml, pcs)", border: OutlineInputBorder()),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      key: const ValueKey('custom_ing_cost'),
+                      controller: _customCostController,
+                      keyboardType: TextInputType.number,
+                      decoration: const InputDecoration(labelText: "Cost (£/unit)", border: OutlineInputBorder()),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+            TextField(
+              controller: _qtyController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: "Quantity", border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+        ElevatedButton(onPressed: _submit, child: const Text("Add Ingredient")),
+      ],
     );
   }
 }

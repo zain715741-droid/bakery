@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
 import '../controllers/shell_controller.dart';
 import '../models/user_model.dart';
@@ -8,6 +9,7 @@ import '../providers/auth_provider.dart';
 import '../providers/branding_provider.dart';
 import '../theme/luxury_theme.dart';
 import 'widgets/sync_banner.dart';
+import 'storefront/storefront_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'recipes/recipes_screen.dart';
 import 'inventory/inventory_screen.dart';
@@ -23,10 +25,6 @@ class ShellScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(ShellController());
-    final branding = Get.find<BrandingProvider>().branding;
-    final auth = Get.find<AuthProvider>();
-    final primaryColor = branding.primaryColor;
-    final accentColor = branding.accentColor;
 
     final List<Widget> pages = [
       DashboardScreen(onNavigateToTab: controller.selectTab),
@@ -50,13 +48,19 @@ class ShellScreen extends StatelessWidget {
       "Branding Studio",
     ];
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth > 800;
+    return Consumer2<BrandingProvider, AuthProvider>(
+      builder: (context, brandingProvider, auth, _) {
+        final branding = brandingProvider.branding;
+        final primaryColor = branding.primaryColor;
+        final accentColor = branding.accentColor;
 
-        if (isDesktop) {
-          // Desktop Layout
-          return Scaffold(
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth > 800;
+
+            if (isDesktop) {
+              // Desktop Layout
+              return Scaffold(
             backgroundColor: LuxuryColors.cream,
             appBar: AppBar(
               title: Row(
@@ -97,6 +101,17 @@ class ShellScreen extends StatelessWidget {
               foregroundColor: Colors.white,
               elevation: 2,
               actions: [
+                OutlinedButton.icon(
+                  onPressed: () => Get.to(() => const StorefrontScreen()),
+                  icon: const Icon(Icons.storefront_rounded, size: 16, color: Colors.white),
+                  label: Text('Customer Storefront', style: GoogleFonts.outfit(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.white.withValues(alpha: 0.4)),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                const SizedBox(width: 10),
                 _buildOnlineBadge(controller),
                 const SizedBox(width: 14),
                 _buildProfileMenu(auth, controller, accentColor),
@@ -115,6 +130,7 @@ class ShellScreen extends StatelessWidget {
                   child: Row(
                     children: [
                       Container(
+                        width: 92,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           border: Border(right: BorderSide(color: Colors.brown.shade100, width: 1)),
@@ -128,6 +144,7 @@ class ShellScreen extends StatelessWidget {
                                 constraints: BoxConstraints(minHeight: railConstraints.maxHeight),
                                 child: IntrinsicHeight(
                                   child: Obx(() => NavigationRail(
+                                        minWidth: 92,
                                         backgroundColor: Colors.transparent,
                                         selectedIndex: controller.currentIndex.value,
                                         onDestinationSelected: controller.selectTab,
@@ -164,10 +181,7 @@ class ShellScreen extends StatelessWidget {
                       ),
                       Expanded(
                         child: Obx(
-                          () => IndexedStack(
-                            index: controller.currentIndex.value,
-                            children: pages,
-                          ),
+                          () => pages[controller.currentIndex.value],
                         ),
                       ),
                     ],
@@ -209,10 +223,7 @@ class ShellScreen extends StatelessWidget {
                   )),
               Expanded(
                 child: Obx(
-                  () => IndexedStack(
-                    index: controller.currentIndex.value,
-                    children: pages,
-                  ),
+                  () => pages[controller.currentIndex.value],
                 ),
               ),
             ],
@@ -243,6 +254,8 @@ class ShellScreen extends StatelessWidget {
         );
       },
     );
+  },
+);
   }
 
   Widget _buildOnlineBadge(ShellController controller) {
@@ -276,6 +289,7 @@ class ShellScreen extends StatelessWidget {
         child: const Icon(Icons.person_rounded, size: 22, color: Colors.white),
       ),
       onSelected: (val) {
+        if (val == 'storefront') Get.to(() => const StorefrontScreen());
         if (val == 'branding') controller.selectTab(7);
         if (val == 'users') controller.selectTab(6);
         if (val == 'reports') controller.selectTab(5);
@@ -316,6 +330,16 @@ class ShellScreen extends StatelessWidget {
           ),
         if (auth.permissions.canEditBranding)
           PopupMenuItem(value: 'branding', child: Row(children: [const Icon(Icons.brush_rounded, size: 18), const SizedBox(width: 8), Text("Branding Studio", style: GoogleFonts.outfit())])),
+        PopupMenuItem(
+          value: 'storefront',
+          child: Row(
+            children: [
+              const Icon(Icons.storefront_rounded, size: 18, color: Color(0xFF6B4423)),
+              const SizedBox(width: 8),
+              Text("View Storefront", style: GoogleFonts.outfit(fontWeight: FontWeight.w500)),
+            ],
+          ),
+        ),
         PopupMenuItem(value: 'logout', child: Row(children: [const Icon(Icons.logout, color: Colors.red, size: 18), const SizedBox(width: 8), Text("Sign Out", style: GoogleFonts.outfit(color: Colors.red, fontWeight: FontWeight.w600))])),
       ],
     );
@@ -353,6 +377,14 @@ class ShellScreen extends StatelessWidget {
           if (auth.permissions.canManageUsers) _buildDrawerTile(Icons.people_alt_rounded, "User Management", 6, controller, primaryColor, accentColor, badgeCount: auth.pendingCount),
           if (auth.permissions.canEditBranding) _buildDrawerTile(Icons.brush_rounded, "Branding Studio", 7, controller, primaryColor, accentColor),
           const Divider(),
+          ListTile(
+            leading: Icon(Icons.storefront_rounded, color: primaryColor),
+            title: Text("Customer Storefront", style: GoogleFonts.outfit(fontWeight: FontWeight.bold, color: primaryColor)),
+            onTap: () {
+              Get.back();
+              Get.to(() => const StorefrontScreen());
+            },
+          ),
           ListTile(
             leading: const Icon(Icons.logout_rounded, color: Colors.redAccent),
             title: Text("Sign Out", style: GoogleFonts.outfit(color: Colors.redAccent, fontWeight: FontWeight.bold)),
