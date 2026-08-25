@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
@@ -38,6 +39,16 @@ class LoginController extends GetxController {
         margin: const EdgeInsets.all(16),
       );
       return;
+    }
+
+    // Try signing in via Firebase Authentication
+    try {
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email.toLowerCase(),
+        password: password,
+      );
+    } catch (e) {
+      debugPrint("Firebase Auth sign in note: $e");
     }
 
     final matching = auth.allUsers.where(

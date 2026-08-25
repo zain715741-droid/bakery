@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import '../models/user_model.dart';
 import '../services/database_service.dart';
 
@@ -87,6 +88,19 @@ class AuthProvider extends ChangeNotifier {
     required UserRole requestedRole,
     String? note,
   }) async {
+    // 1. Create in Firebase Authentication Console
+    try {
+      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email.trim().toLowerCase(),
+        password: password,
+      );
+      if (cred.user != null) {
+        await cred.user!.updateDisplayName(name.trim());
+      }
+    } catch (e) {
+      debugPrint("Firebase Auth registration note: $e");
+    }
+
     final newUser = UserModel(
       id: 'u_${DateTime.now().millisecondsSinceEpoch}',
       name: name.trim(),
@@ -126,6 +140,19 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> addUser(UserModel user) async {
+    // 1. Create in Firebase Authentication Console
+    try {
+      final cred = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: user.email.trim().toLowerCase(),
+        password: user.password ?? 'bakery123',
+      );
+      if (cred.user != null) {
+        await cred.user!.updateDisplayName(user.name.trim());
+      }
+    } catch (e) {
+      debugPrint("Firebase Auth user creation note: $e");
+    }
+
     _allUsers.add(user);
     notifyListeners();
 
