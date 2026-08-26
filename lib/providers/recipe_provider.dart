@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/recipe_model.dart';
 import '../models/ingredient_model.dart';
@@ -7,6 +8,31 @@ class RecipeProvider extends ChangeNotifier {
   List<RecipeModel> _recipes = [];
   String _searchQuery = '';
   String _selectedCategory = 'All';
+  StreamSubscription<List<RecipeModel>>? _recipesSubscription;
+
+  RecipeProvider() {
+    _initLiveStream();
+  }
+
+  void _initLiveStream() {
+    _recipesSubscription = DatabaseService.instance.recipesStream.listen(
+      (liveRecipes) {
+        if (liveRecipes.isNotEmpty) {
+          _recipes = liveRecipes;
+          notifyListeners();
+        }
+      },
+      onError: (err) {
+        debugPrint("Error in live recipes stream: $err");
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _recipesSubscription?.cancel();
+    super.dispose();
+  }
 
   List<RecipeModel> get recipes => List.unmodifiable(_recipes);
   String get searchQuery => _searchQuery;

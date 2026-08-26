@@ -8,15 +8,36 @@ import '../../providers/branding_provider.dart';
 import '../storefront/storefront_screen.dart';
 import 'signup_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  late final TextEditingController _emailController;
+  late final TextEditingController _passwordController;
+  late final LoginController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _emailController = TextEditingController();
+    _passwordController = TextEditingController();
+    _controller = Get.put(LoginController());
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = Get.put(LoginController());
-
     final branding = Get.find<BrandingProvider>().branding;
-
     final primaryColor = branding.primaryColor;
     final accentColor = branding.accentColor;
 
@@ -24,11 +45,7 @@ class LoginScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF5EFE6),
       body: Stack(
         children: [
-
-          // =====================================================
-          // BACKGROUND
-          // =====================================================
-
+          // Background Gradient
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -47,22 +64,14 @@ class LoginScreen extends StatelessWidget {
           Positioned(
             top: -170,
             right: -130,
-            child: _backgroundGlow(
-              400,
-              accentColor,
-              .10,
-            ),
+            child: _backgroundGlow(400, accentColor, .10),
           ),
 
           // Bottom Left Warm Glow
           Positioned(
             bottom: -180,
             left: -150,
-            child: _backgroundGlow(
-              430,
-              const Color(0xFFD9B98C),
-              .18,
-            ),
+            child: _backgroundGlow(430, const Color(0xFFD9B98C), .18),
           ),
 
           // Soft Center Shape
@@ -74,41 +83,29 @@ class LoginScreen extends StatelessWidget {
               height: 260,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: const Color(0xFFD8B58A)
-                    .withValues(alpha: .035),
+                color: const Color(0xFFD8B58A).withValues(alpha: .035),
               ),
             ),
           ),
 
-          // =====================================================
-          // MAIN CONTENT
-          // =====================================================
-
+          // Main Content
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
-
-                final isDesktop =
-                    constraints.maxWidth >= 900;
+                final isDesktop = constraints.maxWidth >= 900;
 
                 return Center(
                   child: SingleChildScrollView(
-                    physics:
-                        const BouncingScrollPhysics(),
+                    physics: const BouncingScrollPhysics(),
                     padding: EdgeInsets.symmetric(
-                      horizontal:
-                          isDesktop ? 70 : 20,
+                      horizontal: isDesktop ? 70 : 20,
                       vertical: 35,
                     ),
                     child: ConstrainedBox(
-                      constraints:
-                          const BoxConstraints(
-                        maxWidth: 1180,
-                      ),
+                      constraints: const BoxConstraints(maxWidth: 1180),
                       child: isDesktop
                           ? _desktopLayout(
                               context,
-                              controller,
                               branding.businessName,
                               branding.welcomeMessage,
                               primaryColor,
@@ -116,7 +113,6 @@ class LoginScreen extends StatelessWidget {
                             )
                           : _mobileLayout(
                               context,
-                              controller,
                               branding.businessName,
                               branding.welcomeMessage,
                               primaryColor,
@@ -133,26 +129,17 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  // ============================================================
-  // DESKTOP LAYOUT
-  // ============================================================
-
   Widget _desktopLayout(
     BuildContext context,
-    LoginController controller,
     String businessName,
     String welcomeMessage,
     Color primaryColor,
     Color accentColor,
   ) {
     return Container(
-      constraints: const BoxConstraints(
-        minHeight: 650,
-      ),
+      constraints: const BoxConstraints(minHeight: 650),
       child: Row(
         children: [
-
-          // LEFT BRANDING
           Expanded(
             child: _brandingSection(
               businessName,
@@ -160,15 +147,11 @@ class LoginScreen extends StatelessWidget {
               accentColor,
             ),
           ),
-
           const SizedBox(width: 75),
-
-          // RIGHT LOGIN
           SizedBox(
             width: 470,
             child: _loginPanel(
               context,
-              controller,
               primaryColor,
               accentColor,
             ),
@@ -178,13 +161,8 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  // ============================================================
-  // MOBILE LAYOUT
-  // ============================================================
-
   Widget _mobileLayout(
     BuildContext context,
-    LoginController controller,
     String businessName,
     String welcomeMessage,
     Color primaryColor,
@@ -192,29 +170,21 @@ class LoginScreen extends StatelessWidget {
   ) {
     return Column(
       children: [
-
         _brandingSection(
           businessName,
           welcomeMessage,
           accentColor,
           mobile: true,
         ),
-
         const SizedBox(height: 35),
-
         _loginPanel(
           context,
-          controller,
           primaryColor,
           accentColor,
         ),
       ],
     );
   }
-
-  // ============================================================
-  // BRANDING SECTION
-  // ============================================================
 
   Widget _brandingSection(
     String businessName,
@@ -223,17 +193,9 @@ class LoginScreen extends StatelessWidget {
     bool mobile = false,
   }) {
     return Column(
-      crossAxisAlignment: mobile
-          ? CrossAxisAlignment.center
-          : CrossAxisAlignment.start,
-      mainAxisAlignment:
-          MainAxisAlignment.center,
+      crossAxisAlignment: mobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-
-        // ======================================================
-        // LOGO
-        // ======================================================
-
         Container(
           width: 112,
           height: 112,
@@ -245,17 +207,12 @@ class LoginScreen extends StatelessWidget {
               colors: [
                 const Color(0xFFF6D77A),
                 accentColor,
-                Color.alphaBlend(
-                  Colors.black12,
-                  accentColor,
-                ),
+                Color.alphaBlend(Colors.black12, accentColor),
               ],
             ),
             boxShadow: [
               BoxShadow(
-                color: accentColor.withValues(
-                  alpha: .25,
-                ),
+                color: accentColor.withValues(alpha: .25),
                 blurRadius: 35,
                 spreadRadius: 4,
                 offset: const Offset(0, 8),
@@ -268,34 +225,19 @@ class LoginScreen extends StatelessWidget {
               shape: BoxShape.circle,
               color: Color(0xFF2C1810),
             ),
-            child: Icon(
+            child: const Icon(
               Icons.bakery_dining_rounded,
               size: 50,
               color: Color(0xFFD4AF37),
             ),
           ),
         ),
-
         const SizedBox(height: 30),
-
-        // ======================================================
-        // SMALL BRAND LABEL
-        // ======================================================
-
         Row(
-          mainAxisAlignment: mobile
-              ? MainAxisAlignment.center
-              : MainAxisAlignment.start,
+          mainAxisAlignment: mobile ? MainAxisAlignment.center : MainAxisAlignment.start,
           children: [
-
-            Container(
-              width: 38,
-              height: 1,
-              color: accentColor,
-            ),
-
+            Container(width: 38, height: 1, color: accentColor),
             const SizedBox(width: 10),
-
             Text(
               'ARTISAN BAKERY',
               style: GoogleFonts.outfit(
@@ -305,27 +247,14 @@ class LoginScreen extends StatelessWidget {
                 letterSpacing: 2.5,
               ),
             ),
-
             const SizedBox(width: 10),
-
-            Container(
-              width: 38,
-              height: 1,
-              color: accentColor,
-            ),
+            Container(width: 38, height: 1, color: accentColor),
           ],
         ),
-
         const SizedBox(height: 16),
-
-        // ======================================================
-        // BUSINESS NAME
-        // ======================================================
-
         Text(
           businessName,
-          textAlign:
-              mobile ? TextAlign.center : TextAlign.left,
+          textAlign: mobile ? TextAlign.center : TextAlign.left,
           style: GoogleFonts.playfairDisplay(
             color: const Color(0xFF2C1810),
             fontSize: mobile ? 34 : 52,
@@ -333,19 +262,12 @@ class LoginScreen extends StatelessWidget {
             fontWeight: FontWeight.w700,
           ),
         ),
-
         const SizedBox(height: 18),
-
-        // ======================================================
-        // WELCOME MESSAGE
-        // ======================================================
-
         SizedBox(
           width: 470,
           child: Text(
             welcomeMessage,
-            textAlign:
-                mobile ? TextAlign.center : TextAlign.left,
+            textAlign: mobile ? TextAlign.center : TextAlign.left,
             style: GoogleFonts.outfit(
               color: const Color(0xFF806F63),
               fontSize: 14,
@@ -354,51 +276,23 @@ class LoginScreen extends StatelessWidget {
             ),
           ),
         ),
-
         const SizedBox(height: 30),
-
-        // ======================================================
-        // FEATURES
-        // ======================================================
-
         Wrap(
-          alignment: mobile
-              ? WrapAlignment.center
-              : WrapAlignment.start,
+          alignment: mobile ? WrapAlignment.center : WrapAlignment.start,
           spacing: 22,
           runSpacing: 12,
           children: [
-
-            _feature(
-              Icons.auto_awesome_rounded,
-              'Premium',
-              accentColor,
-            ),
-
-            _feature(
-              Icons.bakery_dining_rounded,
-              'Artisan',
-              accentColor,
-            ),
-
-            _feature(
-              Icons.verified_rounded,
-              'Trusted',
-              accentColor,
-            ),
+            _feature(Icons.auto_awesome_rounded, 'Premium', accentColor),
+            _feature(Icons.bakery_dining_rounded, 'Artisan', accentColor),
+            _feature(Icons.verified_rounded, 'Trusted', accentColor),
           ],
         ),
       ],
     );
   }
 
-  // ============================================================
-  // LOGIN PANEL
-  // ============================================================
-
   Widget _loginPanel(
     BuildContext context,
-    LoginController controller,
     Color primaryColor,
     Color accentColor,
   ) {
@@ -407,32 +301,24 @@ class LoginScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFCF7),
         borderRadius: BorderRadius.circular(28),
-        border: Border.all(
-          color: const Color(0xFFE2D3BF),
-          width: 1,
-        ),
+        border: Border.all(color: const Color(0xFFE2D3BF), width: 1),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF6B4B32)
-                .withValues(alpha: .10),
+            color: const Color(0xFF6B4B32).withValues(alpha: .10),
             blurRadius: 40,
             offset: const Offset(0, 18),
           ),
           BoxShadow(
-            color: accentColor.withValues(
-              alpha: .08,
-            ),
+            color: accentColor.withValues(alpha: .08),
             blurRadius: 25,
             offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
-          // Back to Storefront Action
+          // Back to Storefront Link
           InkWell(
             onTap: () => Get.offAll(() => const StorefrontScreen()),
             borderRadius: BorderRadius.circular(8),
@@ -458,13 +344,9 @@ class LoginScreen extends StatelessWidget {
 
           const SizedBox(height: 16),
 
-          // ====================================================
-          // HEADER
-          // ====================================================
-
+          // Header
           Row(
             children: [
-
               Container(
                 width: 48,
                 height: 48,
@@ -473,36 +355,23 @@ class LoginScreen extends StatelessWidget {
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                     colors: [
-                      accentColor.withValues(
-                        alpha: .18,
-                      ),
-                      accentColor.withValues(
-                        alpha: .07,
-                      ),
+                      accentColor.withValues(alpha: .18),
+                      accentColor.withValues(alpha: .07),
                     ],
                   ),
-                  borderRadius:
-                      BorderRadius.circular(14),
-                  border: Border.all(
-                    color: accentColor.withValues(
-                      alpha: .30,
-                    ),
-                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: accentColor.withValues(alpha: .30)),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.lock_person_rounded,
-                  color: const Color(0xFFA67C1E),
+                  color: Color(0xFFA67C1E),
                   size: 23,
                 ),
               ),
-
               const SizedBox(width: 13),
-
               Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   Text(
                     'WELCOME BACK',
                     style: GoogleFonts.outfit(
@@ -512,9 +381,7 @@ class LoginScreen extends StatelessWidget {
                       letterSpacing: 1.8,
                     ),
                   ),
-
                   const SizedBox(height: 4),
-
                   Text(
                     'Sign in to continue',
                     style: GoogleFonts.outfit(
@@ -530,80 +397,35 @@ class LoginScreen extends StatelessWidget {
 
           const SizedBox(height: 30),
 
-          // ====================================================
-          // LOGIN AS
-          // ====================================================
-
-          _sectionTitle(
-            'LOGIN AS',
-            accentColor,
-          ),
-
+          // Role Selector
+          _sectionTitle('LOGIN AS', accentColor),
           const SizedBox(height: 9),
-
-          Obx(
-            () => _roleSelector(
-              controller,
-              primaryColor,
-              accentColor,
-            ),
-          ),
-
+          Obx(() => _roleSelector(primaryColor, accentColor)),
           const SizedBox(height: 24),
 
-          // ====================================================
-          // EMAIL
-          // ====================================================
-
-          _sectionTitle(
-            'EMAIL ADDRESS',
-            accentColor,
-          ),
-
+          // Email Input
+          _sectionTitle('EMAIL ADDRESS', accentColor),
           const SizedBox(height: 8),
-
           _textField(
-            controller: controller.emailController,
+            controller: _emailController,
             hint: 'name@example.com',
             icon: Icons.person_outline_rounded,
             primaryColor: primaryColor,
           ),
-
           const SizedBox(height: 17),
 
-          // ====================================================
-          // PASSWORD
-          // ====================================================
-
-          _sectionTitle(
-            'PASSWORD',
-            accentColor,
-          ),
-
+          // Password Input
+          _sectionTitle('PASSWORD', accentColor),
           const SizedBox(height: 8),
+          Obx(() => _passwordField(primaryColor, accentColor)),
 
-          Obx(
-            () => _passwordField(
-              controller,
-              primaryColor,
-              accentColor,
-            ),
-          ),
-
-          // ====================================================
-          // FORGOT PASSWORD
-          // ====================================================
-
+          // Forgot Password
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
-              onPressed:
-                  controller.showForgotPassword,
+              onPressed: _controller.showForgotPassword,
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 4,
-                  vertical: 5,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 5),
               ),
               child: Text(
                 'Forgot password?',
@@ -618,86 +440,45 @@ class LoginScreen extends StatelessWidget {
 
           const SizedBox(height: 7),
 
-          // ====================================================
-          // LOGIN BUTTON
-          // ====================================================
-
-          _loginButton(
-            controller,
-            primaryColor,
-            accentColor,
-          ),
+          // Login Action Button
+          _loginButton(primaryColor, accentColor),
 
           const SizedBox(height: 22),
 
-          // ====================================================
-          // DIVIDER
-          // ====================================================
-
-          Row(
+          // Divider
+          const Row(
             children: [
-
-              Expanded(
-                child: Divider(
-                  color: const Color(0xFFE2D6C9),
-                ),
-              ),
-
+              Expanded(child: Divider(color: Color(0xFFE2D6C9))),
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(
-                  horizontal: 12,
-                ),
+                padding: EdgeInsets.symmetric(horizontal: 12),
                 child: Text(
                   'OR',
-                  style: GoogleFonts.outfit(
-                    color: const Color(0xFFAA9B8F),
-                    fontSize: 9,
-                    fontWeight:
-                        FontWeight.w700,
-                  ),
+                  style: TextStyle(color: Color(0xFFAA9B8F), fontSize: 9, fontWeight: FontWeight.w700),
                 ),
               ),
-
-              Expanded(
-                child: Divider(
-                  color: const Color(0xFFE2D6C9),
-                ),
-              ),
+              Expanded(child: Divider(color: Color(0xFFE2D6C9))),
             ],
           ),
 
           const SizedBox(height: 20),
 
-          // ====================================================
-          // SIGN UP
-          // ====================================================
-
+          // Sign Up Navigation
           Center(
             child: Wrap(
-              alignment:
-                  WrapAlignment.center,
+              alignment: WrapAlignment.center,
               children: [
-
                 Text(
                   'New staff member? ',
-                  style: GoogleFonts.outfit(
-                    color: const Color(0xFF806F63),
-                    fontSize: 12,
-                  ),
+                  style: GoogleFonts.outfit(color: const Color(0xFF806F63), fontSize: 12),
                 ),
-
                 GestureDetector(
-                  onTap: () => Get.to(
-                    () => const SignUpScreen(),
-                  ),
+                  onTap: () => Get.to(() => const SignUpScreen()),
                   child: Text(
                     'Register for Access',
                     style: GoogleFonts.outfit(
                       color: const Color(0xFFA67C1E),
                       fontSize: 12,
-                      fontWeight:
-                          FontWeight.w800,
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
@@ -709,81 +490,33 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  // ============================================================
-  // ROLE SELECTOR
-  // ============================================================
-
-  Widget _roleSelector(
-    LoginController controller,
-    Color primaryColor,
-    Color accentColor,
-  ) {
+  Widget _roleSelector(Color primaryColor, Color accentColor) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: const Color(0xFFF5EEE4),
-        borderRadius:
-            BorderRadius.circular(14),
-        border: Border.all(
-          color: const Color(0xFFE3D6C6),
-        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE3D6C6)),
       ),
       child: Row(
         children: [
-
-          _roleTab(
-            UserRole.owner,
-            'Owner',
-            controller,
-            primaryColor,
-            accentColor,
-          ),
-
-          _roleTab(
-            UserRole.manager,
-            'Manager',
-            controller,
-            primaryColor,
-            accentColor,
-          ),
-
-          _roleTab(
-            UserRole.staff,
-            'Staff',
-            controller,
-            primaryColor,
-            accentColor,
-          ),
+          _roleTab(UserRole.owner, 'Owner', primaryColor, accentColor),
+          _roleTab(UserRole.manager, 'Manager', primaryColor, accentColor),
+          _roleTab(UserRole.staff, 'Staff', primaryColor, accentColor),
         ],
       ),
     );
   }
 
-  // ============================================================
-  // ROLE TAB
-  // ============================================================
-
-  Widget _roleTab(
-    UserRole role,
-    String label,
-    LoginController controller,
-    Color primaryColor,
-    Color accentColor,
-  ) {
-    final selected =
-        controller.selectedRole.value == role;
+  Widget _roleTab(UserRole role, String label, Color primaryColor, Color accentColor) {
+    final selected = _controller.selectedRole.value == role;
 
     return Expanded(
       child: GestureDetector(
-        onTap: () =>
-            controller.switchRole(role),
+        onTap: () => _controller.switchRole(role),
         child: AnimatedContainer(
-          duration:
-              const Duration(milliseconds: 220),
-          padding:
-              const EdgeInsets.symmetric(
-            vertical: 11,
-          ),
+          duration: const Duration(milliseconds: 220),
+          padding: const EdgeInsets.symmetric(vertical: 11),
           decoration: BoxDecoration(
             gradient: selected
                 ? LinearGradient(
@@ -791,22 +524,17 @@ class LoginScreen extends StatelessWidget {
                     end: Alignment.bottomRight,
                     colors: [
                       accentColor,
-                      Color.alphaBlend(
-                        Colors.black12,
-                        accentColor,
-                      ),
+                      Color.alphaBlend(Colors.black12, accentColor),
                     ],
                   )
                 : null,
-            borderRadius:
-                BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(11),
             boxShadow: selected
                 ? [
                     BoxShadow(
-                      color: accentColor
-                          .withValues(alpha: .20),
+                      color: accentColor.withValues(alpha: .22),
                       blurRadius: 10,
-                      offset: const Offset(0, 4),
+                      offset: const Offset(0, 3),
                     ),
                   ]
                 : null,
@@ -815,23 +543,15 @@ class LoginScreen extends StatelessWidget {
             label,
             textAlign: TextAlign.center,
             style: GoogleFonts.outfit(
-              fontSize: 11,
-              fontWeight: selected
-                  ? FontWeight.w800
-                  : FontWeight.w500,
-              color: selected
-                  ? const Color(0xFF2C1810)
-                  : const Color(0xFF806F63),
+              color: selected ? const Color(0xFF2C1810) : const Color(0xFF806F63),
+              fontSize: 12,
+              fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
             ),
           ),
         ),
       ),
     );
   }
-
-  // ============================================================
-  // TEXT FIELD
-  // ============================================================
 
   Widget _textField({
     required TextEditingController controller,
@@ -846,28 +566,14 @@ class LoginScreen extends StatelessWidget {
         fontSize: 13,
         fontWeight: FontWeight.w500,
       ),
-      decoration: _inputDecoration(
-        hint,
-        icon,
-        primaryColor,
-      ),
+      decoration: _inputDecoration(hint, icon, primaryColor),
     );
   }
 
-  // ============================================================
-  // PASSWORD FIELD
-  // ============================================================
-
-  Widget _passwordField(
-    LoginController controller,
-    Color primaryColor,
-    Color accentColor,
-  ) {
+  Widget _passwordField(Color primaryColor, Color accentColor) {
     return TextField(
-      controller:
-          controller.passwordController,
-      obscureText:
-          controller.obscurePassword.value,
+      controller: _passwordController,
+      obscureText: _controller.obscurePassword.value,
       style: GoogleFonts.outfit(
         color: const Color(0xFF2C1810),
         fontSize: 13,
@@ -879,12 +585,9 @@ class LoginScreen extends StatelessWidget {
         primaryColor,
       ).copyWith(
         suffixIcon: IconButton(
-          onPressed: () =>
-              controller.obscurePassword.toggle(),
+          onPressed: () => _controller.obscurePassword.toggle(),
           icon: Icon(
-            controller.obscurePassword.value
-                ? Icons.visibility_off_outlined
-                : Icons.visibility_outlined,
+            _controller.obscurePassword.value ? Icons.visibility_off_outlined : Icons.visibility_outlined,
             color: const Color(0xFFA67C1E),
             size: 19,
           ),
@@ -893,75 +596,21 @@ class LoginScreen extends StatelessWidget {
     );
   }
 
-  // ============================================================
-  // INPUT DECORATION
-  // ============================================================
-
-  InputDecoration _inputDecoration(
-    String hint,
-    IconData icon,
-    Color primaryColor,
-  ) {
+  InputDecoration _inputDecoration(String hint, IconData icon, Color primaryColor) {
     return InputDecoration(
       hintText: hint,
-
-      hintStyle: GoogleFonts.outfit(
-        color: const Color(0xFFAA9B8F),
-        fontSize: 12,
-      ),
-
-      prefixIcon: Icon(
-        icon,
-        color: const Color(0xFF9A8A7D),
-        size: 20,
-      ),
-
+      hintStyle: GoogleFonts.outfit(color: const Color(0xFFAA9B8F), fontSize: 12),
+      prefixIcon: Icon(icon, color: const Color(0xFF9A8A7D), size: 20),
       filled: true,
-
       fillColor: const Color(0xFFF8F3EB),
-
-      contentPadding:
-          const EdgeInsets.symmetric(
-        horizontal: 16,
-        vertical: 16,
-      ),
-
-      border: OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Color(0xFFE3D6C6),
-        ),
-      ),
-
-      enabledBorder: OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(14),
-        borderSide: const BorderSide(
-          color: Color(0xFFE3D6C6),
-        ),
-      ),
-
-      focusedBorder: OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(14),
-        borderSide: BorderSide(
-          color: primaryColor,
-          width: 1.5,
-        ),
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE3D6C6))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE3D6C6))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide(color: primaryColor, width: 1.5)),
     );
   }
 
-  // ============================================================
-  // LOGIN BUTTON
-  // ============================================================
-
-  Widget _loginButton(
-    LoginController controller,
-    Color primaryColor,
-    Color accentColor,
-  ) {
+  Widget _loginButton(Color primaryColor, Color accentColor) {
     return SizedBox(
       width: double.infinity,
       height: 56,
@@ -973,154 +622,102 @@ class LoginScreen extends StatelessWidget {
             colors: [
               const Color(0xFFF0CE72),
               accentColor,
-              Color.alphaBlend(
-                Colors.black12,
-                accentColor,
-              ),
+              Color.alphaBlend(Colors.black12, accentColor),
             ],
           ),
-          borderRadius:
-              BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(15),
           boxShadow: [
             BoxShadow(
-              color: accentColor.withValues(
-                alpha: .25,
-              ),
+              color: accentColor.withValues(alpha: .25),
               blurRadius: 22,
               offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: ElevatedButton(
-          onPressed:
-              controller.handleLogin,
-          style: ElevatedButton.styleFrom(
-            backgroundColor:
-                Colors.transparent,
-            foregroundColor:
-                const Color(0xFF2C1810),
-            shadowColor:
-                Colors.transparent,
-            shape:
-                RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(15),
+        child: Obx(
+          () => ElevatedButton(
+            onPressed: _controller.isLoading.value
+                ? null
+                : () => _controller.handleLogin(
+                      email: _emailController.text,
+                      password: _passwordController.text,
+                    ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.transparent,
+              foregroundColor: const Color(0xFF2C1810),
+              shadowColor: Colors.transparent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
             ),
-          ),
-          child: Row(
-            mainAxisAlignment:
-                MainAxisAlignment.center,
-            children: [
-
-              Text(
-                'ENTER BAKERY DASHBOARD',
-                style: GoogleFonts.outfit(
-                  fontSize: 11,
-                  fontWeight:
-                      FontWeight.w800,
-                  letterSpacing: 1,
-                ),
-              ),
-
-              const SizedBox(width: 10),
-
-              const Icon(
-                Icons.arrow_forward_rounded,
-                size: 18,
-              ),
-            ],
+            child: _controller.isLoading.value
+                ? const SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2C1810)),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'ENTER BAKERY DASHBOARD',
+                        style: GoogleFonts.outfit(fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1),
+                      ),
+                      const SizedBox(width: 10),
+                      const Icon(Icons.arrow_forward_rounded, size: 18),
+                    ],
+                  ),
           ),
         ),
       ),
     );
   }
 
-  // ============================================================
-  // SECTION TITLE
-  // ============================================================
-
-  Widget _sectionTitle(
-    String text,
-    Color accentColor,
-  ) {
-    return Text(
-      text,
-      style: GoogleFonts.outfit(
-        color: const Color(0xFFA67C1E),
-        fontSize: 9,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 1.6,
-      ),
-    );
-  }
-
-  // ============================================================
-  // FEATURE
-  // ============================================================
-
-  Widget _feature(
-    IconData icon,
-    String text,
-    Color accentColor,
-  ) {
+  Widget _sectionTitle(String title, Color accentColor) {
     return Row(
-      mainAxisSize: MainAxisSize.min,
       children: [
-
-        Container(
-          width: 26,
-          height: 26,
-          decoration: BoxDecoration(
-            color: accentColor.withValues(
-              alpha: .10,
-            ),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            icon,
-            color: const Color(0xFFA67C1E),
-            size: 13,
-          ),
-        ),
-
-        const SizedBox(width: 7),
-
+        Container(width: 5, height: 5, decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
         Text(
-          text,
+          title,
           style: GoogleFonts.outfit(
-            color: const Color(0xFF806F63),
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
+            color: const Color(0xFFA67C1E),
+            fontSize: 9,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.2,
           ),
         ),
       ],
     );
   }
 
-  // ============================================================
-  // BACKGROUND GLOW
-  // ============================================================
+  Widget _feature(IconData icon, String text, Color accentColor) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 15, color: const Color(0xFFA67C1E)),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: GoogleFonts.outfit(color: const Color(0xFF806F63), fontSize: 12, fontWeight: FontWeight.w600),
+        ),
+      ],
+    );
+  }
 
-  Widget _backgroundGlow(
-    double size,
-    Color color,
-    double opacity,
-  ) {
+  Widget _backgroundGlow(double size, Color color, double opacity) {
     return Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color.withValues(
-          alpha: opacity,
-        ),
+        color: color.withValues(alpha: opacity),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(
-              alpha: opacity,
-            ),
-            blurRadius: 120,
-            spreadRadius: 20,
+            color: color.withValues(alpha: opacity),
+            blurRadius: size * .7,
+            spreadRadius: size * .2,
           ),
         ],
       ),

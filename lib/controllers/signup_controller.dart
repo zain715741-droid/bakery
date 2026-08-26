@@ -7,40 +7,28 @@ import '../providers/auth_provider.dart';
 import '../views/auth/login_screen.dart';
 
 class SignUpController extends GetxController {
-  final nameController = TextEditingController();
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
-  final confirmPasswordController = TextEditingController();
-  final noteController = TextEditingController();
-
   final selectedRole = UserRole.staff.obs;
   final obscurePassword = true.obs;
   final obscureConfirmPassword = true.obs;
   final isLoading = false.obs;
 
-  @override
-  void onClose() {
-    nameController.dispose();
-    emailController.dispose();
-    passwordController.dispose();
-    confirmPasswordController.dispose();
-    noteController.dispose();
-    super.dispose();
-  }
+  Future<void> handleSignUp({
+    required String name,
+    required String email,
+    required String password,
+    required String confirmPassword,
+    String? note,
+  }) async {
+    final trimmedName = name.trim();
+    final trimmedEmail = email.trim();
+    final trimmedNote = note?.trim();
 
-  Future<void> handleSignUp() async {
-    final name = nameController.text.trim();
-    final email = emailController.text.trim();
-    final password = passwordController.text;
-    final confirmPassword = confirmPasswordController.text;
-    final note = noteController.text.trim();
-
-    if (name.isEmpty) {
+    if (trimmedName.isEmpty) {
       Get.snackbar("Validation Error", "Please enter your full name.", backgroundColor: const Color(0xFF3E1D19), colorText: Colors.white);
       return;
     }
 
-    if (email.isEmpty || !email.contains('@')) {
+    if (trimmedEmail.isEmpty || !trimmedEmail.contains('@')) {
       Get.snackbar("Validation Error", "Please enter a valid email address.", backgroundColor: const Color(0xFF3E1D19), colorText: Colors.white);
       return;
     }
@@ -56,7 +44,7 @@ class SignUpController extends GetxController {
     }
 
     final auth = Get.find<AuthProvider>();
-    if (auth.allUsers.any((u) => u.email.toLowerCase() == email.toLowerCase())) {
+    if (auth.allUsers.any((u) => u.email.toLowerCase() == trimmedEmail.toLowerCase())) {
       Get.snackbar("Account Exists", "This email address is already registered.", backgroundColor: const Color(0xFF3E1D19), colorText: Colors.white);
       return;
     }
@@ -64,14 +52,14 @@ class SignUpController extends GetxController {
     isLoading.value = true;
     try {
       await auth.registerUser(
-        name: name,
-        email: email,
+        name: trimmedName,
+        email: trimmedEmail,
         password: password,
         requestedRole: selectedRole.value,
-        note: note.isNotEmpty ? note : null,
+        note: trimmedNote != null && trimmedNote.isNotEmpty ? trimmedNote : null,
       );
       isLoading.value = false;
-      _showSuccessDialog(name, selectedRole.value);
+      _showSuccessDialog(trimmedName, selectedRole.value);
     } catch (e) {
       isLoading.value = false;
       Get.snackbar("Registration Failed", e.toString(), backgroundColor: const Color(0xFF3E1D19), colorText: Colors.white);

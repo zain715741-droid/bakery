@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/customer_model.dart';
 import '../services/database_service.dart';
@@ -5,6 +6,31 @@ import '../services/database_service.dart';
 class CustomerProvider extends ChangeNotifier {
   List<CustomerModel> _customers = [];
   String _searchQuery = '';
+  StreamSubscription<List<CustomerModel>>? _customersSubscription;
+
+  CustomerProvider() {
+    _initLiveStream();
+  }
+
+  void _initLiveStream() {
+    _customersSubscription = DatabaseService.instance.customersStream.listen(
+      (liveCustomers) {
+        if (liveCustomers.isNotEmpty) {
+          _customers = liveCustomers;
+          notifyListeners();
+        }
+      },
+      onError: (err) {
+        debugPrint("Error in live customers stream: $err");
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _customersSubscription?.cancel();
+    super.dispose();
+  }
 
   List<CustomerModel> get customers => List.unmodifiable(_customers);
   String get searchQuery => _searchQuery;

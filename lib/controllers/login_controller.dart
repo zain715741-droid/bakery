@@ -5,31 +5,24 @@ import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
+import '../providers/branding_provider.dart';
 import '../views/shell_screen.dart';
 
 class LoginController extends GetxController {
-  final emailController = TextEditingController();
-  final passwordController = TextEditingController();
   final obscurePassword = true.obs;
   final selectedRole = UserRole.owner.obs;
-
-  @override
-  void onClose() {
-    emailController.dispose();
-    passwordController.dispose();
-    super.dispose();
-  }
+  final isLoading = false.obs;
 
   void switchRole(UserRole role) {
     selectedRole.value = role;
   }
 
-  Future<void> handleLogin() async {
+  Future<void> handleLogin({required String email, required String password}) async {
     final auth = Get.find<AuthProvider>();
-    final email = emailController.text.trim();
-    final password = passwordController.text.trim();
+    final trimmedEmail = email.trim();
+    final trimmedPassword = password;
 
-    if (email.isEmpty) {
+    if (trimmedEmail.isEmpty) {
       Get.snackbar(
         "Email Required",
         "Please enter your registered email address.",
@@ -41,37 +34,118 @@ class LoginController extends GetxController {
       return;
     }
 
-    // Try signing in via Firebase Authentication
-    try {
-      await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email.toLowerCase(),
-        password: password,
+    if (trimmedPassword.isEmpty) {
+      Get.snackbar(
+        "Password Required",
+        "Please enter your password.",
+        backgroundColor: const Color(0xFF1E0F0A),
+        colorText: Colors.white,
+        snackPosition: SnackPosition.BOTTOM,
+        margin: const EdgeInsets.all(16),
       );
-    } catch (e) {
-      debugPrint("Firebase Auth sign in note: $e");
+      return;
     }
 
+    isLoading.value = true;
+
+    bool firebaseSuccess = false;
+    // 1. Try signing in via Firebase Authentication if email is properly formatted
+    if (trimmedEmail.contains('@') && trimmedEmail.contains('.')) {
+      try {
+        final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: trimmedEmail.toLowerCase(),
+          password: trimmedPassword,
+        );
+        if (cred.user != null) {
+          firebaseSuccess = true;
+        }
+      } on FirebaseAuthException catch (e) {
+        debugPrint("Firebase Auth sign in error code: ${e.code}");
+        if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+          isLoading.value = false;
+          Get.snackbar(
+            "Invalid Password",
+            "The password you entered is incorrect. Please check and try again.",
+            backgroundColor: const Color(0xFF8B1E0F),
+            colorText: Colors.white,
+            icon: const Icon(Icons.lock_clock_outlined, color: Colors.white),
+            snackPosition: SnackPosition.BOTTOM,
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          );
+          return;
+        }
+      } catch (e) {
+        debugPrint("Firebase Auth sign in note: $e");
+      }
+    }
+
+    // 2. Check Database Users
     final matching = auth.allUsers.where(
-      (u) => u.email.toLowerCase() == email.toLowerCase(),
+      (u) => u.email.toLowerCase() == trimmedEmail.toLowerCase(),
     );
 
     if (matching.isNotEmpty) {
-      final user = matching.first;
+      var user = matching.first;
+
+      // STRICT PASSWORD VERIFICATION
+      if (user.password != null && user.password!.isNotEmpty) {
+        if (user.password != trimmedPassword && !firebaseSuccess) {
+          isLoading.value = false;
+          Get.snackbar(
+            "Incorrect Password",
+            "The password you entered is incorrect. Please try again.",
+            backgroundColor: const Color(0xFF8B1E0F),
+            colorText: Colors.white,
+            icon: const Icon(Icons.lock_clock_outlined, color: Colors.white),
+            snackPosition: SnackPosition.BOTTOM,
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          );
+          return;
+        }
+      } else if (!firebaseSuccess) {
+        isLoading.value = false;
+        Get.snackbar(
+          "Authentication Failed",
+          "Invalid credentials. Please enter the correct password.",
+          backgroundColor: const Color(0xFF8B1E0F),
+          colorText: Colors.white,
+          icon: const Icon(Icons.lock_clock_outlined, color: Colors.white),
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 4),
+        );
+        return;
+      }
+
+      // Check account approval
       if (!user.isApproved) {
+        isLoading.value = false;
         _showPendingDialog(user);
         return;
       }
+
+      if (user.role == UserRole.owner) {
+        final branding = Get.find<BrandingProvider>().branding;
+        if (branding.ownerName.isNotEmpty && branding.ownerName != 'Owner' && (user.name == 'Bakery Owner' || user.name.isEmpty)) {
+          user = user.copyWith(name: branding.ownerName);
+          await auth.updateOwnerProfileName(branding.ownerName);
+        }
+      }
+
+      isLoading.value = false;
       await auth.loginAsUser(user);
       Get.offAll(() => const ShellScreen(), routeName: '/ShellScreen');
       return;
     }
 
-    // Default Owner Bootstrap for fresh first setup
+    // 3. First Setup Bootstrap (Only if ZERO users exist in whole database)
     if (auth.allUsers.isEmpty) {
       final ownerUser = UserModel(
         id: 'u_${DateTime.now().millisecondsSinceEpoch}',
-        email: email,
-        password: password,
+        email: trimmedEmail,
+        password: trimmedPassword,
         name: 'Bakery Owner',
         role: UserRole.owner,
         isApproved: true,
@@ -79,13 +153,16 @@ class LoginController extends GetxController {
       );
       await auth.addUser(ownerUser);
       await auth.loginAsUser(ownerUser);
+      isLoading.value = false;
       Get.offAll(() => const ShellScreen(), routeName: '/ShellScreen');
       return;
     }
 
+    // 4. Account not found
+    isLoading.value = false;
     Get.snackbar(
       "Account Not Found",
-      "No account found for $email. Please click 'Create New Account' to register your profile.",
+      "No account found for $trimmedEmail. Please click 'Register for Access' to create a profile.",
       backgroundColor: const Color(0xFF1E0F0A),
       colorText: Colors.white,
       snackPosition: SnackPosition.BOTTOM,

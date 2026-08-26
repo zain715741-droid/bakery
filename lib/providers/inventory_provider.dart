@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../models/ingredient_model.dart';
@@ -7,6 +8,31 @@ class InventoryProvider extends ChangeNotifier {
   List<IngredientModel> _ingredients = [];
   String _searchQuery = '';
   String _selectedCategory = 'All';
+  StreamSubscription<List<IngredientModel>>? _ingredientsSubscription;
+
+  InventoryProvider() {
+    _initLiveStream();
+  }
+
+  void _initLiveStream() {
+    _ingredientsSubscription = DatabaseService.instance.ingredientsStream.listen(
+      (liveIngredients) {
+        if (liveIngredients.isNotEmpty) {
+          _ingredients = liveIngredients;
+          notifyListeners();
+        }
+      },
+      onError: (err) {
+        debugPrint("Error in live ingredients stream: $err");
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _ingredientsSubscription?.cancel();
+    super.dispose();
+  }
 
   List<IngredientModel> get ingredients => List.unmodifiable(_ingredients);
   String get searchQuery => _searchQuery;

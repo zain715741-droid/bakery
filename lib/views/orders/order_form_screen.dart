@@ -10,6 +10,8 @@ import '../../models/order_model.dart';
 import '../../providers/customer_provider.dart';
 import '../../providers/branding_provider.dart';
 import '../../providers/recipe_provider.dart';
+import 'package:latlong2/latlong.dart';
+import '../widgets/location_picker_dialog.dart';
 
 class OrderFormScreen extends StatelessWidget {
   const OrderFormScreen({super.key});
@@ -148,7 +150,115 @@ class OrderFormScreen extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+
+            // Delivery Map Picker for Local Delivery
+            Obx(() {
+              if (controller.fulfillment.value == FulfillmentType.delivery) {
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.brown.shade50.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: primaryColor.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.delivery_dining_rounded, color: primaryColor, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            "Delivery Destination & GPS Pin",
+                            style: TextStyle(fontWeight: FontWeight.bold, color: primaryColor, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            flex: 3,
+                            child: TextField(
+                              controller: controller.addressController,
+                              decoration: const InputDecoration(
+                                labelText: "Delivery Street Address",
+                                hintText: "e.g. House 12, Main Boulevard",
+                                prefixIcon: Icon(Icons.location_city_outlined, size: 18),
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            flex: 1,
+                            child: TextField(
+                              controller: controller.postcodeController,
+                              decoration: const InputDecoration(
+                                labelText: "Postcode",
+                                hintText: "54000",
+                                prefixIcon: Icon(Icons.pin_drop_outlined, size: 18),
+                                border: OutlineInputBorder(),
+                                isDense: true,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final result = await showDialog<Map<String, dynamic>>(
+                              context: context,
+                              builder: (_) => LocationPickerDialog(
+                                initialLocation: LatLng(
+                                  controller.deliveryLatitude.value ?? 31.5204,
+                                  controller.deliveryLongitude.value ?? 74.3587,
+                                ),
+                                initialAddress: controller.addressController.text,
+                                initialPostcode: controller.postcodeController.text,
+                                primaryColor: primaryColor,
+                                accentColor: branding.accentColor,
+                              ),
+                            );
+                            if (result != null) {
+                              final LatLng latLng = result['latLng'];
+                              final String addr = result['address'] ?? '';
+                              final String postcode = result['postcode'] ?? '';
+                              controller.setDeliveryCoordinates(
+                                latLng.latitude,
+                                latLng.longitude,
+                                formattedAddress: addr,
+                                postcode: postcode,
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.pin_drop_rounded, size: 18),
+                          label: Text(
+                            controller.deliveryLatitude.value != null
+                                ? "📍 Pinned: (${controller.deliveryLatitude.value!.toStringAsFixed(4)}, ${controller.deliveryLongitude.value!.toStringAsFixed(4)}) - Tap to Change"
+                                : "📍 Open Live Map & Search Address",
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: primaryColor,
+                            side: BorderSide(color: primaryColor),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            }),
 
             TextField(
               controller: controller.notesController,

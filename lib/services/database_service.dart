@@ -20,7 +20,15 @@ class DatabaseService {
   DatabaseService._internal();
 
   Database? _db;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  FirebaseFirestore? get _firestore {
+    try {
+      return FirebaseFirestore.instance;
+    } catch (e) {
+      debugPrint("Firebase Firestore not yet initialized or error: $e");
+      return null;
+    }
+  }
 
   Future<Database?> get database async {
     if (kIsWeb) return null;
@@ -140,8 +148,11 @@ class DatabaseService {
 
     // 3. Sync live to Firebase Cloud Firestore
     try {
-      await _firestore.collection(collectionName).doc(docId).set(data, SetOptions(merge: true));
-      debugPrint("Synced document $docId to Firebase Firestore collection '$collectionName'");
+      final fs = _firestore;
+      if (fs != null) {
+        await fs.collection(collectionName).doc(docId).set(data, SetOptions(merge: true));
+        debugPrint("Synced document $docId to Firebase Firestore collection '$collectionName'");
+      }
     } catch (e) {
       debugPrint("Firebase sync note (queued offline): $e");
       await _queueForSync(collectionName, 'SAVE', docId, data);
@@ -172,7 +183,10 @@ class DatabaseService {
 
     // 3. Delete from Firebase Firestore
     try {
-      await _firestore.collection(collectionName).doc(docId).delete();
+      final fs = _firestore;
+      if (fs != null) {
+        await fs.collection(collectionName).doc(docId).delete();
+      }
     } catch (e) {
       await _queueForSync(collectionName, 'DELETE', docId, {});
     }
@@ -198,7 +212,8 @@ class DatabaseService {
   Future<void> syncPendingQueueToFirebase() async {
     try {
       final db = await database;
-      if (db == null) return;
+      final fs = _firestore;
+      if (db == null || fs == null) return;
 
       final pendingRows = await db.query('sync_queue', orderBy: 'id ASC');
       for (final row in pendingRows) {
@@ -210,9 +225,9 @@ class DatabaseService {
 
         try {
           if (action == 'SAVE') {
-            await _firestore.collection(collection).doc(docId).set(payload, SetOptions(merge: true));
+            await fs.collection(collection).doc(docId).set(payload, SetOptions(merge: true));
           } else if (action == 'DELETE') {
-            await _firestore.collection(collection).doc(docId).delete();
+            await fs.collection(collection).doc(docId).delete();
           }
           await db.delete('sync_queue', where: 'id = ?', whereArgs: [id]);
         } catch (e) {
@@ -225,7 +240,82 @@ class DatabaseService {
     }
   }
 
-  // --- Clean Real Data Initialization (Zero Dummy Data, Pure Original) ---
+  // --- Real-time Live Firestore Streams ---
+
+  Stream<List<RecipeModel>> get recipesStream {
+    final fs = _firestore;
+    if (fs == null) return const Stream.empty();
+    try {
+      return fs.collection('recipes').snapshots().map((snapshot) {
+        return snapshot.docs.map((doc) => RecipeModel.fromMap(doc.data())).toList();
+      }).handleError((e) {
+        debugPrint("Error in recipesStream: $e");
+      });
+    } catch (e) {
+      return const Stream.empty();
+    }
+  }
+
+  Stream<List<OrderModel>> get ordersStream {
+    final fs = _firestore;
+    if (fs == null) return const Stream.empty();
+    try {
+      return fs.collection('orders').snapshots().map((snapshot) {
+        return snapshot.docs.map((doc) => OrderModel.fromMap(doc.data())).toList();
+      }).handleError((e) {
+        debugPrint("Error in ordersStream: $e");
+      });
+    } catch (e) {
+      return const Stream.empty();
+    }
+  }
+
+  Stream<List<IngredientModel>> get ingredientsStream {
+    final fs = _firestore;
+    if (fs == null) return const Stream.empty();
+    try {
+      return fs.collection('ingredients').snapshots().map((snapshot) {
+        return snapshot.docs.map((doc) => IngredientModel.fromMap(doc.data())).toList();
+      }).handleError((e) {
+        debugPrint("Error in ingredientsStream: $e");
+      });
+    } catch (e) {
+      return const Stream.empty();
+    }
+  }
+
+  Stream<List<CustomerModel>> get customersStream {
+    final fs = _firestore;
+    if (fs == null) return const Stream.empty();
+    try {
+      return fs.collection('customers').snapshots().map((snapshot) {
+        return snapshot.docs.map((doc) => CustomerModel.fromMap(doc.data())).toList();
+      }).handleError((e) {
+        debugPrint("Error in customersStream: $e");
+      });
+    } catch (e) {
+      return const Stream.empty();
+    }
+  }
+
+  Stream<BrandingModel?> get brandingStream {
+    final fs = _firestore;
+    if (fs == null) return const Stream.empty();
+    try {
+      return fs.collection('branding').snapshots().map((snapshot) {
+        if (snapshot.docs.isNotEmpty) {
+          return BrandingModel.fromMap(snapshot.docs.first.data());
+        }
+        return null;
+      }).handleError((e) {
+        debugPrint("Error in brandingStream: $e");
+      });
+    } catch (e) {
+      return const Stream.empty();
+    }
+  }
+
+  // --- Clean Real Data Initialization (Pure Database Driven) ---
   Future<void> seedInitialDataIfEmpty({
     required Function(BrandingModel) onBrandingLoaded,
     required Function(List<IngredientModel>) onIngredientsLoaded,
@@ -236,9 +326,6 @@ class DatabaseService {
   }) async {
     await database;
 
-    // Purge any previously seeded dummy items from local storage
-    await _purgeLingeringDummyData();
-
     bool usersLoaded = false;
     bool brandingLoaded = false;
     bool ingredientsLoaded = false;
@@ -247,85 +334,103 @@ class DatabaseService {
     bool ordersLoaded = false;
 
     // 1. Attempt fetching live data from Firebase Cloud Firestore
-    try {
-      final usersSnap = await _firestore.collection('users').get().timeout(const Duration(seconds: 3));
-      if (usersSnap.docs.isNotEmpty) {
-        final users = usersSnap.docs
-            .map((doc) => UserModel.fromMap(doc.data()))
-            .where((u) => !_isDummyId(u.id))
-            .toList();
-        if (users.isNotEmpty) {
-          onUsersLoaded(users);
-          usersLoaded = true;
+    final fs = _firestore;
+    if (fs != null) {
+      try {
+        final usersSnap = await fs.collection('users').get().timeout(const Duration(seconds: 4));
+        if (usersSnap.docs.isNotEmpty) {
+          final users = usersSnap.docs
+              .map((doc) => UserModel.fromMap(doc.data()))
+              .toList();
+          if (users.isNotEmpty) {
+            onUsersLoaded(users);
+            usersLoaded = true;
+          }
         }
-      }
 
-      final brandingSnap = await _firestore.collection('branding').get().timeout(const Duration(seconds: 3));
-      if (brandingSnap.docs.isNotEmpty) {
-        final branding = BrandingModel.fromMap(brandingSnap.docs.first.data());
-        onBrandingLoaded(branding);
-        brandingLoaded = true;
-      }
+        final brandingSnap = await fs.collection('branding').get().timeout(const Duration(seconds: 4));
+        if (brandingSnap.docs.isNotEmpty) {
+          final branding = BrandingModel.fromMap(brandingSnap.docs.first.data());
+          onBrandingLoaded(branding);
+          brandingLoaded = true;
+        }
 
-      final ingSnap = await _firestore.collection('ingredients').get().timeout(const Duration(seconds: 3));
-      if (ingSnap.docs.isNotEmpty) {
-        final ingredients = ingSnap.docs
-            .map((doc) => IngredientModel.fromMap(doc.data()))
-            .where((i) => !_isDummyId(i.id))
-            .toList();
-        onIngredientsLoaded(ingredients);
-        ingredientsLoaded = true;
-      }
+        final ingSnap = await fs.collection('ingredients').get().timeout(const Duration(seconds: 4));
+        if (ingSnap.docs.isNotEmpty) {
+          final ingredients = ingSnap.docs
+              .map((doc) => IngredientModel.fromMap(doc.data()))
+              .toList();
+          onIngredientsLoaded(ingredients);
+          ingredientsLoaded = true;
+        } else {
+          // If Firestore collection is empty, seed initial ingredients to Firestore
+          final defaultIngs = InitialBakeryData.defaultIngredients;
+          onIngredientsLoaded(defaultIngs);
+          ingredientsLoaded = true;
+          for (final ing in defaultIngs) {
+            await saveDocument('ingredients', ing.id, ing.toMap());
+          }
+        }
 
-      final recipeSnap = await _firestore.collection('recipes').get().timeout(const Duration(seconds: 3));
-      if (recipeSnap.docs.isNotEmpty) {
-        final recipes = recipeSnap.docs
-            .map((doc) => RecipeModel.fromMap(doc.data()))
-            .where((r) => !_isDummyId(r.id))
-            .toList();
-        onRecipesLoaded(recipes);
-        recipesLoaded = true;
-      }
+        final recipeSnap = await fs.collection('recipes').get().timeout(const Duration(seconds: 4));
+        if (recipeSnap.docs.isNotEmpty) {
+          final recipes = recipeSnap.docs
+              .map((doc) => RecipeModel.fromMap(doc.data()))
+              .toList();
+          onRecipesLoaded(recipes);
+          recipesLoaded = true;
+        } else {
+          // If Firestore collection is empty, seed initial recipes to Firestore
+          final defaultRecs = InitialBakeryData.defaultRecipes;
+          onRecipesLoaded(defaultRecs);
+          recipesLoaded = true;
+          for (final rec in defaultRecs) {
+            await saveDocument('recipes', rec.id, rec.toMap());
+          }
+        }
 
-      final custSnap = await _firestore.collection('customers').get().timeout(const Duration(seconds: 3));
-      if (custSnap.docs.isNotEmpty) {
-        final customers = custSnap.docs
-            .map((doc) => CustomerModel.fromMap(doc.data()))
-            .where((c) => !_isDummyId(c.id))
-            .toList();
-        onCustomersLoaded(customers);
-        customersLoaded = true;
-      }
+        final custSnap = await fs.collection('customers').get().timeout(const Duration(seconds: 4));
+        if (custSnap.docs.isNotEmpty) {
+          final customers = custSnap.docs
+              .map((doc) => CustomerModel.fromMap(doc.data()))
+              .toList();
+          onCustomersLoaded(customers);
+          customersLoaded = true;
+        } else {
+          final defaultCusts = InitialBakeryData.defaultCustomers;
+          onCustomersLoaded(defaultCusts);
+          customersLoaded = true;
+          for (final cust in defaultCusts) {
+            await saveDocument('customers', cust.id, cust.toMap());
+          }
+        }
 
-      final orderSnap = await _firestore.collection('orders').get().timeout(const Duration(seconds: 3));
-      if (orderSnap.docs.isNotEmpty) {
-        final orders = orderSnap.docs
-            .map((doc) => OrderModel.fromMap(doc.data()))
-            .where((o) => !_isDummyId(o.id))
-            .toList();
-        onOrdersLoaded(orders);
-        ordersLoaded = true;
+        final orderSnap = await fs.collection('orders').get().timeout(const Duration(seconds: 4));
+        if (orderSnap.docs.isNotEmpty) {
+          final orders = orderSnap.docs
+              .map((doc) => OrderModel.fromMap(doc.data()))
+              .toList();
+          onOrdersLoaded(orders);
+          ordersLoaded = true;
+        }
+      } catch (e) {
+        debugPrint("Firebase cloud load note: $e");
       }
-    } catch (e) {
-      debugPrint("Firebase cloud load note: $e");
     }
 
-    // 2. Load from Local Persistence for any collections not loaded from Cloud
+    // 2. Fallback to Local Storage only if completely offline / Firestore failed
     final prefs = await SharedPreferences.getInstance();
 
-    // 2a. Users
     if (!usersLoaded) {
       final savedUserIds = prefs.getStringList('sp_ids_users') ?? [];
       final List<UserModel> localUsers = [];
       for (final id in savedUserIds) {
-        if (_isDummyId(id)) continue;
         final raw = prefs.getString('sp_users_$id');
         if (raw != null) localUsers.add(UserModel.fromMap(jsonDecode(raw)));
       }
       onUsersLoaded(localUsers);
     }
 
-    // 2b. Branding
     if (!brandingLoaded) {
       final savedBrandingIds = prefs.getStringList('sp_ids_branding') ?? [];
       BrandingModel? localBranding;
@@ -336,119 +441,44 @@ class DatabaseService {
       onBrandingLoaded(localBranding ?? BrandingModel());
     }
 
-    // 2c. Ingredients
-    final List<IngredientModel> localIngs = [];
     if (!ingredientsLoaded) {
       final savedIngIds = prefs.getStringList('sp_ids_ingredients') ?? [];
+      final List<IngredientModel> localIngs = [];
       for (final id in savedIngIds) {
-        if (_isDummyId(id)) continue;
         final raw = prefs.getString('sp_ingredients_$id');
         if (raw != null) localIngs.add(IngredientModel.fromMap(jsonDecode(raw)));
       }
-    }
-    if (localIngs.isEmpty && !ingredientsLoaded) {
-      final defaultIngs = InitialBakeryData.defaultIngredients;
-      onIngredientsLoaded(defaultIngs);
-      for (final ing in defaultIngs) {
-        await saveDocument('ingredients', ing.id, ing.toMap());
-      }
-    } else if (!ingredientsLoaded) {
       onIngredientsLoaded(localIngs);
     }
 
-    // 2d. Recipes / Menu Items
-    final List<RecipeModel> localRecs = [];
     if (!recipesLoaded) {
       final savedRecIds = prefs.getStringList('sp_ids_recipes') ?? [];
+      final List<RecipeModel> localRecs = [];
       for (final id in savedRecIds) {
-        if (_isDummyId(id)) continue;
         final raw = prefs.getString('sp_recipes_$id');
         if (raw != null) localRecs.add(RecipeModel.fromMap(jsonDecode(raw)));
       }
-    }
-    if (localRecs.isEmpty && !recipesLoaded) {
-      final defaultRecs = InitialBakeryData.defaultRecipes;
-      onRecipesLoaded(defaultRecs);
-      for (final rec in defaultRecs) {
-        await saveDocument('recipes', rec.id, rec.toMap());
-      }
-    } else if (!recipesLoaded) {
       onRecipesLoaded(localRecs);
     }
 
-    // 2e. Customers
-    final List<CustomerModel> localCusts = [];
     if (!customersLoaded) {
       final savedCustIds = prefs.getStringList('sp_ids_customers') ?? [];
+      final List<CustomerModel> localCusts = [];
       for (final id in savedCustIds) {
-        if (_isDummyId(id)) continue;
         final raw = prefs.getString('sp_customers_$id');
         if (raw != null) localCusts.add(CustomerModel.fromMap(jsonDecode(raw)));
       }
-    }
-    if (localCusts.isEmpty && !customersLoaded) {
-      final defaultCusts = InitialBakeryData.defaultCustomers;
-      onCustomersLoaded(defaultCusts);
-      for (final cust in defaultCusts) {
-        await saveDocument('customers', cust.id, cust.toMap());
-      }
-    } else if (!customersLoaded) {
       onCustomersLoaded(localCusts);
     }
 
-    // 2f. Orders
     if (!ordersLoaded) {
       final savedOrderIds = prefs.getStringList('sp_ids_orders') ?? [];
       final List<OrderModel> localOrders = [];
       for (final id in savedOrderIds) {
-        if (_isDummyId(id)) continue;
         final raw = prefs.getString('sp_orders_$id');
         if (raw != null) localOrders.add(OrderModel.fromMap(jsonDecode(raw)));
       }
       onOrdersLoaded(localOrders);
-    }
-  }
-
-  static const _dummyIdSet = {
-    'cust_1', 'cust_2', 'cust_3',
-    'ord_101', 'ord_102', 'ord_103', 'ord_104',
-    'rec_1', 'rec_2', 'rec_3', 'rec_4',
-    'ing_1', 'ing_2', 'ing_3', 'ing_4', 'ing_5', 'ing_6',
-    'ing_7', 'ing_8', 'ing_9', 'ing_10', 'ing_11', 'ing_12',
-  };
-
-  bool _isDummyId(String id) {
-    return _dummyIdSet.contains(id);
-  }
-
-  Future<void> _purgeLingeringDummyData() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      const collections = ['users', 'ingredients', 'recipes', 'customers', 'orders'];
-
-      for (final col in collections) {
-        final ids = prefs.getStringList('sp_ids_$col') ?? [];
-        final cleanedIds = <String>[];
-        for (final id in ids) {
-          if (_isDummyId(id)) {
-            await prefs.remove('sp_${col}_$id');
-          } else {
-            cleanedIds.add(id);
-          }
-        }
-        await prefs.setStringList('sp_ids_$col', cleanedIds);
-      }
-
-      final db = await database;
-      if (db != null) {
-        for (final dummyId in _dummyIdSet) {
-          for (final col in ['ingredients', 'recipes', 'customers', 'orders']) {
-            await db.delete(col, where: 'id = ?', whereArgs: [dummyId]);
-          }
-        }
-      }
-    } catch (e) {
-      debugPrint("Dummy data purge note: $e");
     }
   }
 }

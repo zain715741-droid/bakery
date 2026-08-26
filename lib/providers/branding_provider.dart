@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 
 import '../models/branding_model.dart';
@@ -5,6 +6,31 @@ import '../services/database_service.dart';
 
 class BrandingProvider extends ChangeNotifier {
   BrandingModel _branding = BrandingModel();
+  StreamSubscription<BrandingModel?>? _brandingSubscription;
+
+  BrandingProvider() {
+    _initLiveStream();
+  }
+
+  void _initLiveStream() {
+    _brandingSubscription = DatabaseService.instance.brandingStream.listen(
+      (liveBranding) {
+        if (liveBranding != null) {
+          _branding = liveBranding;
+          notifyListeners();
+        }
+      },
+      onError: (err) {
+        debugPrint("Error in live branding stream: $err");
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _brandingSubscription?.cancel();
+    super.dispose();
+  }
 
   BrandingModel get branding => _branding;
 

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/order_model.dart';
 import '../models/recipe_model.dart';
@@ -9,6 +10,31 @@ class OrderProvider extends ChangeNotifier {
   List<OrderModel> _orders = [];
   String _searchQuery = '';
   OrderStatus? _selectedStatusFilter;
+  StreamSubscription<List<OrderModel>>? _ordersSubscription;
+
+  OrderProvider() {
+    _initLiveStream();
+  }
+
+  void _initLiveStream() {
+    _ordersSubscription = DatabaseService.instance.ordersStream.listen(
+      (liveOrders) {
+        if (liveOrders.isNotEmpty) {
+          _orders = liveOrders;
+          notifyListeners();
+        }
+      },
+      onError: (err) {
+        debugPrint("Error in live orders stream: $err");
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _ordersSubscription?.cancel();
+    super.dispose();
+  }
 
   List<OrderModel> get orders => List.unmodifiable(_orders);
   String get searchQuery => _searchQuery;

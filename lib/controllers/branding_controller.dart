@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../providers/auth_provider.dart';
 import '../providers/branding_provider.dart';
+import '../models/user_model.dart';
 import '../theme/luxury_theme.dart';
 
 class BrandingScreenController extends GetxController {
@@ -24,8 +26,19 @@ class BrandingScreenController extends GetxController {
   void onInit() {
     super.onInit();
     final branding = Get.find<BrandingProvider>().branding;
+    final auth = Get.find<AuthProvider>();
+
+    final initialOwnerName = (auth.currentUser?.role == UserRole.owner &&
+            auth.currentUser?.name != null &&
+            auth.currentUser!.name.isNotEmpty &&
+            auth.currentUser!.name != 'Bakery Owner')
+        ? auth.currentUser!.name
+        : (branding.ownerName.isNotEmpty && branding.ownerName != 'Owner'
+            ? branding.ownerName
+            : (auth.currentUser?.name ?? branding.ownerName));
+
     businessNameController = TextEditingController(text: branding.businessName);
-    ownerNameController = TextEditingController(text: branding.ownerName);
+    ownerNameController = TextEditingController(text: initialOwnerName);
     welcomeController = TextEditingController(text: branding.welcomeMessage);
     currencyController = TextEditingController(text: branding.currencySymbol);
     vatController = TextEditingController(text: (branding.vatRate * 100).toStringAsFixed(0));
@@ -41,13 +54,16 @@ class BrandingScreenController extends GetxController {
     super.dispose();
   }
 
-  void saveBranding() {
+  Future<void> saveBranding() async {
     final provider = Get.find<BrandingProvider>();
+    final auth = Get.find<AuthProvider>();
     final vatPercent = double.tryParse(vatController.text) ?? 20.0;
+    final newOwnerName = ownerNameController.text.trim();
+    final newBusinessName = businessNameController.text.trim();
 
     final updated = provider.branding.copyWith(
-      businessName: businessNameController.text.trim(),
-      ownerName: ownerNameController.text.trim(),
+      businessName: newBusinessName,
+      ownerName: newOwnerName,
       welcomeMessage: welcomeController.text.trim(),
       currencySymbol: currencyController.text.trim(),
       vatRate: vatPercent / 100.0,
@@ -55,9 +71,13 @@ class BrandingScreenController extends GetxController {
 
     provider.updateBranding(updated);
 
+    if (newOwnerName.isNotEmpty) {
+      await auth.updateOwnerProfileName(newOwnerName);
+    }
+
     Get.snackbar(
       "Branding Saved",
-      "Luxury branding settings updated globally across the app!",
+      "Luxury branding and owner profile updated globally across the app!",
       backgroundColor: LuxuryColors.espresso,
       colorText: Colors.white,
       snackPosition: SnackPosition.BOTTOM,

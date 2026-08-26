@@ -172,6 +172,47 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> updateOwnerProfileName(String newName) async {
+    final trimmed = newName.trim();
+    if (trimmed.isEmpty) return;
+
+    if (_currentUser != null && _currentUser!.role == UserRole.owner) {
+      _currentUser = _currentUser!.copyWith(name: trimmed);
+    }
+
+    for (int i = 0; i < _allUsers.length; i++) {
+      if (_allUsers[i].role == UserRole.owner) {
+        _allUsers[i] = _allUsers[i].copyWith(name: trimmed);
+        await DatabaseService.instance.saveDocument('users', _allUsers[i].id, _allUsers[i].toMap());
+      }
+    }
+
+    notifyListeners();
+
+    try {
+      if (FirebaseAuth.instance.currentUser != null) {
+        await FirebaseAuth.instance.currentUser!.updateDisplayName(trimmed);
+      }
+    } catch (e) {
+      debugPrint("Firebase Auth display name update note: $e");
+    }
+  }
+
+  Future<void> updateUserName(String userId, String newName) async {
+    final trimmed = newName.trim();
+    if (trimmed.isEmpty) return;
+
+    final index = _allUsers.indexWhere((u) => u.id == userId);
+    if (index != -1) {
+      _allUsers[index] = _allUsers[index].copyWith(name: trimmed);
+      if (_currentUser?.id == userId) {
+        _currentUser = _allUsers[index];
+      }
+      notifyListeners();
+      await DatabaseService.instance.saveDocument('users', _allUsers[index].id, _allUsers[index].toMap());
+    }
+  }
+
   Future<void> deleteUser(String userId) async {
     _allUsers.removeWhere((u) => u.id == userId);
     if (_currentUser?.id == userId) {

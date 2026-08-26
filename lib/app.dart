@@ -134,12 +134,7 @@ class _BakeryAppState extends State<BakeryApp> {
                 getPages: [
                   GetPage(name: '/', page: () => const StorefrontScreen()),
                   GetPage(name: '/StorefrontScreen', page: () => const StorefrontScreen()),
-                  GetPage(
-                    name: '/ShellScreen',
-                    page: () => _authProvider.isAuthenticated
-                        ? const ShellScreen()
-                        : const StorefrontScreen(),
-                  ),
+                  GetPage(name: '/ShellScreen', page: () => const ShellScreen()),
                   GetPage(name: '/LoginScreen', page: () => const LoginScreen()),
                   GetPage(name: '/SignUpScreen', page: () => const SignUpScreen()),
                   GetPage(name: '/OrderFormScreen', page: () => const OrderFormScreen()),

@@ -7,14 +7,45 @@ import '../../models/user_model.dart';
 import '../../providers/branding_provider.dart';
 import 'login_screen.dart';
 
-class SignUpScreen extends StatelessWidget {
+class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final controller = Get.put(SignUpController());
-    final branding = Get.find<BrandingProvider>().branding;
+  State<SignUpScreen> createState() => _SignUpScreenState();
+}
 
+class _SignUpScreenState extends State<SignUpScreen> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _emailController;
+  late final TextEditingController _passwordController;
+  late final TextEditingController _confirmPasswordController;
+  late final TextEditingController _noteController;
+  late final SignUpController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _emailController = TextEditingController();
+    _passwordController = TextEditingController();
+    _confirmPasswordController = TextEditingController();
+    _noteController = TextEditingController();
+    _controller = Get.put(SignUpController());
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    _noteController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final branding = Get.find<BrandingProvider>().branding;
     final primaryColor = branding.primaryColor;
     final accentColor = branding.accentColor;
 
@@ -22,9 +53,7 @@ class SignUpScreen extends StatelessWidget {
       backgroundColor: const Color(0xFFF5EFE6),
       body: Stack(
         children: [
-          // =====================================================
-          // BACKGROUND
-          // =====================================================
+          // Background Gradient
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -53,28 +82,11 @@ class SignUpScreen extends StatelessWidget {
             child: _backgroundGlow(430, const Color(0xFFD9B98C), .18),
           ),
 
-          // Soft Center Shape
-          Positioned(
-            top: 350,
-            left: 350,
-            child: Container(
-              width: 260,
-              height: 260,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: const Color(0xFFD8B58A).withValues(alpha: .035),
-              ),
-            ),
-          ),
-
-          // =====================================================
-          // MAIN CONTENT
-          // =====================================================
+          // Main Scrollable Area
           SafeArea(
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final isDesktop = constraints.maxWidth >= 900;
-
                 return Center(
                   child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
@@ -83,24 +95,10 @@ class SignUpScreen extends StatelessWidget {
                       vertical: 35,
                     ),
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1180),
+                      constraints: const BoxConstraints(maxWidth: 1100),
                       child: isDesktop
-                          ? _desktopLayout(
-                              context,
-                              controller,
-                              branding.businessName,
-                              branding.welcomeMessage,
-                              primaryColor,
-                              accentColor,
-                            )
-                          : _mobileLayout(
-                              context,
-                              controller,
-                              branding.businessName,
-                              branding.welcomeMessage,
-                              primaryColor,
-                              accentColor,
-                            ),
+                          ? _desktopLayout(context, branding.businessName, primaryColor, accentColor)
+                          : _mobileLayout(context, branding.businessName, primaryColor, accentColor),
                     ),
                   ),
                 );
@@ -112,412 +110,226 @@ class SignUpScreen extends StatelessWidget {
     );
   }
 
-  // ============================================================
-  // DESKTOP LAYOUT
-  // ============================================================
-  Widget _desktopLayout(
-    BuildContext context,
-    SignUpController controller,
-    String businessName,
-    String welcomeMessage,
-    Color primaryColor,
-    Color accentColor,
-  ) {
-    return Container(
-      constraints: const BoxConstraints(minHeight: 650),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          // LEFT BRANDING
-          Expanded(
-            child: _brandingSection(businessName, welcomeMessage, accentColor),
-          ),
-          const SizedBox(width: 75),
-          // RIGHT SIGNUP PANEL
-          SizedBox(
-            width: 520,
-            child: _signUpPanel(context, controller, primaryColor, accentColor),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============================================================
-  // MOBILE LAYOUT
-  // ============================================================
-  Widget _mobileLayout(
-    BuildContext context,
-    SignUpController controller,
-    String businessName,
-    String welcomeMessage,
-    Color primaryColor,
-    Color accentColor,
-  ) {
-    return Column(
+  Widget _desktopLayout(BuildContext context, String businessName, Color primaryColor, Color accentColor) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _brandingSection(
-          businessName,
-          welcomeMessage,
-          accentColor,
-          mobile: true,
+        Expanded(child: _brandingSidebar(businessName, accentColor)),
+        const SizedBox(width: 60),
+        SizedBox(
+          width: 520,
+          child: _signupPanel(context, primaryColor, accentColor),
         ),
-        const SizedBox(height: 35),
-        _signUpPanel(context, controller, primaryColor, accentColor),
       ],
     );
   }
 
-  // ============================================================
-  // BRANDING SECTION
-  // ============================================================
-  Widget _brandingSection(
-    String businessName,
-    String welcomeMessage,
-    Color accentColor, {
-    bool mobile = false,
-  }) {
+  Widget _mobileLayout(BuildContext context, String businessName, Color primaryColor, Color accentColor) {
     return Column(
-      crossAxisAlignment: mobile
-          ? CrossAxisAlignment.center
-          : CrossAxisAlignment.start,
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        // LOGO
+        _brandingSidebar(businessName, accentColor, mobile: true),
+        const SizedBox(height: 25),
+        _signupPanel(context, primaryColor, accentColor),
+      ],
+    );
+  }
+
+  Widget _brandingSidebar(String businessName, Color accentColor, {bool mobile = false}) {
+    return Column(
+      crossAxisAlignment: mobile ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      children: [
         Container(
-          width: 112,
-          height: 112,
+          width: 90,
+          height: 90,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                const Color(0xFFF6D77A),
-                accentColor,
-                Color.alphaBlend(Colors.black12, accentColor),
-              ],
+              colors: [const Color(0xFFF6D77A), accentColor, Color.alphaBlend(Colors.black12, accentColor)],
             ),
             boxShadow: [
-              BoxShadow(
-                color: accentColor.withValues(alpha: .25),
-                blurRadius: 35,
-                spreadRadius: 4,
-                offset: const Offset(0, 8),
-              ),
+              BoxShadow(color: accentColor.withValues(alpha: .25), blurRadius: 30, offset: const Offset(0, 8)),
             ],
           ),
           child: Container(
-            margin: const EdgeInsets.all(7),
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFF2C1810),
-            ),
-            child: const Icon(
-              Icons.bakery_dining_rounded,
-              size: 50,
-              color: Color(0xFFD4AF37),
-            ),
+            margin: const EdgeInsets.all(6),
+            decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFF2C1810)),
+            child: const Icon(Icons.person_add_alt_1_rounded, size: 40, color: Color(0xFFD4AF37)),
           ),
         ),
-        const SizedBox(height: 30),
-
-        // LABEL
-        Row(
-          mainAxisAlignment: mobile
-              ? MainAxisAlignment.center
-              : MainAxisAlignment.start,
-          children: [
-            Container(width: 38, height: 1, color: accentColor),
-            const SizedBox(width: 10),
-            Text(
-              'STAFF PORTAL',
-              style: GoogleFonts.outfit(
-                color: const Color(0xFFA67C1E),
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 2.5,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Container(width: 38, height: 1, color: accentColor),
-          ],
-        ),
-        const SizedBox(height: 16),
-
-        // BUSINESS NAME
+        const SizedBox(height: 24),
         Text(
-          businessName,
+          'STAFF ONBOARDING',
+          style: GoogleFonts.outfit(
+            color: const Color(0xFFA67C1E),
+            fontSize: 10,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          'Join the\nArtisan Team',
           textAlign: mobile ? TextAlign.center : TextAlign.left,
           style: GoogleFonts.playfairDisplay(
             color: const Color(0xFF2C1810),
-            fontSize: mobile ? 34 : 52,
-            height: 1.08,
+            fontSize: mobile ? 30 : 44,
+            height: 1.1,
             fontWeight: FontWeight.w700,
           ),
         ),
-        const SizedBox(height: 18),
-
-        // WELCOME TEXT
-        SizedBox(
-          width: 470,
-          child: Text(
-            'Join our team! Submit your details below to request access. All accounts require Owner verification before approval.',
-            textAlign: mobile ? TextAlign.center : TextAlign.left,
-            style: GoogleFonts.outfit(
-              color: const Color(0xFF806F63),
-              fontSize: 14,
-              height: 1.7,
-              fontWeight: FontWeight.w400,
-            ),
-          ),
-        ),
-        const SizedBox(height: 30),
-
-        // FEATURES
-        Wrap(
-          alignment: mobile ? WrapAlignment.center : WrapAlignment.start,
-          spacing: 22,
-          runSpacing: 12,
-          children: [
-            _feature(Icons.security_rounded, 'Secure Access', accentColor),
-            _feature(
-              Icons.verified_user_rounded,
-              'Owner Verified',
-              accentColor,
-            ),
-            _feature(Icons.badge_rounded, 'Team Roles', accentColor),
-          ],
+        const SizedBox(height: 14),
+        Text(
+          'Register your account to access baking recipes, pos checkout, and inventory operations. All registrations require Bakery Owner approval.',
+          textAlign: mobile ? TextAlign.center : TextAlign.left,
+          style: GoogleFonts.outfit(color: const Color(0xFF806F63), fontSize: 13, height: 1.6),
         ),
       ],
     );
   }
 
-  // ============================================================
-  // SIGNUP PANEL
-  // ============================================================
-  Widget _signUpPanel(
-    BuildContext context,
-    SignUpController controller,
-    Color primaryColor,
-    Color accentColor,
-  ) {
+  Widget _signupPanel(BuildContext context, Color primaryColor, Color accentColor) {
     return Container(
-      padding: const EdgeInsets.all(30),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFCF7),
-        borderRadius: BorderRadius.circular(28),
+        borderRadius: BorderRadius.circular(26),
         border: Border.all(color: const Color(0xFFE2D3BF), width: 1),
         boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF6B4B32).withValues(alpha: .10),
-            blurRadius: 40,
-            offset: const Offset(0, 18),
-          ),
-          BoxShadow(
-            color: accentColor.withValues(alpha: .08),
-            blurRadius: 25,
-            offset: const Offset(0, 5),
-          ),
+          BoxShadow(color: const Color(0xFF6B4B32).withValues(alpha: .10), blurRadius: 36, offset: const Offset(0, 16)),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // HEADER
           Row(
             children: [
               Container(
-                width: 48,
-                height: 48,
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      accentColor.withValues(alpha: .18),
-                      accentColor.withValues(alpha: .07),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: accentColor.withValues(alpha: .30)),
+                  color: accentColor.withValues(alpha: .14),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.how_to_reg_rounded,
-                  color: Color(0xFFA67C1E),
-                  size: 23,
-                ),
+                child: const Icon(Icons.app_registration_rounded, color: Color(0xFFA67C1E), size: 22),
               ),
-              const SizedBox(width: 13),
+              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'NEW REGISTRATION',
-                    style: GoogleFonts.outfit(
-                      color: const Color(0xFFA67C1E),
-                      fontSize: 9,
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: 1.8,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Request Staff Access',
-                    style: GoogleFonts.outfit(
-                      color: const Color(0xFF2C1810),
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  Text('NEW ACCOUNT', style: GoogleFonts.outfit(color: const Color(0xFFA67C1E), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+                  Text('Register Staff Profile', style: GoogleFonts.outfit(color: const Color(0xFF2C1810), fontSize: 16, fontWeight: FontWeight.bold)),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
 
-          // ROLE SELECTOR
-          _sectionTitle('REQUESTED ROLE', accentColor),
+          // Role selection
+          _fieldLabel('REQUESTED ACCESS ROLE', accentColor),
           const SizedBox(height: 8),
           Obx(
             () => Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5EEE4),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE3D6C6)),
-              ),
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(color: const Color(0xFFF5EEE4), borderRadius: BorderRadius.circular(12)),
               child: Row(
                 children: [
-                  _roleChoiceTab(
-                    UserRole.staff,
-                    'Staff Member',
-                    controller,
-                    accentColor,
-                  ),
-                  _roleChoiceTab(
-                    UserRole.manager,
-                    'Manager',
-                    controller,
-                    accentColor,
-                  ),
+                  _roleChoiceTab(UserRole.staff, 'Staff Member', accentColor),
+                  _roleChoiceTab(UserRole.manager, 'Bakery Manager', accentColor),
                 ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Name
+          _fieldLabel('FULL NAME *', accentColor),
+          const SizedBox(height: 6),
+          _textField(controller: _nameController, hint: 'e.g. John Baker', icon: Icons.badge_outlined, primaryColor: primaryColor),
+          const SizedBox(height: 14),
+
+          // Email
+          _fieldLabel('EMAIL ADDRESS *', accentColor),
+          const SizedBox(height: 6),
+          _textField(controller: _emailController, hint: 'john@example.com', icon: Icons.alternate_email_rounded, primaryColor: primaryColor),
+          const SizedBox(height: 14),
+
+          // Password
+          _fieldLabel('PASSWORD (MIN 6 CHARACTERS) *', accentColor),
+          const SizedBox(height: 6),
+          Obx(
+            () => TextField(
+              controller: _passwordController,
+              obscureText: _controller.obscurePassword.value,
+              style: GoogleFonts.outfit(fontSize: 13),
+              decoration: _inputDecoration('••••••••', Icons.lock_outline_rounded, primaryColor).copyWith(
+                suffixIcon: IconButton(
+                  icon: Icon(_controller.obscurePassword.value ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18, color: const Color(0xFFA67C1E)),
+                  onPressed: () => _controller.obscurePassword.toggle(),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Confirm Password
+          _fieldLabel('CONFIRM PASSWORD *', accentColor),
+          const SizedBox(height: 6),
+          Obx(
+            () => TextField(
+              controller: _confirmPasswordController,
+              obscureText: _controller.obscureConfirmPassword.value,
+              style: GoogleFonts.outfit(fontSize: 13),
+              decoration: _inputDecoration('••••••••', Icons.lock_reset_rounded, primaryColor).copyWith(
+                suffixIcon: IconButton(
+                  icon: Icon(_controller.obscureConfirmPassword.value ? Icons.visibility_off_outlined : Icons.visibility_outlined, size: 18, color: const Color(0xFFA67C1E)),
+                  onPressed: () => _controller.obscureConfirmPassword.toggle(),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 14),
+
+          // Optional Note
+          _fieldLabel('NOTE FOR OWNER (OPTIONAL)', accentColor),
+          const SizedBox(height: 6),
+          _textField(controller: _noteController, hint: 'e.g. Morning pastry chef applicant', icon: Icons.edit_note_rounded, primaryColor: primaryColor),
+          const SizedBox(height: 22),
+
+          // Submit Button
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: ElevatedButton(
+              onPressed: _controller.isLoading.value
+                  ? null
+                  : () => _controller.handleSignUp(
+                        name: _nameController.text,
+                        email: _emailController.text,
+                        password: _passwordController.text,
+                        confirmPassword: _confirmPasswordController.text,
+                        note: _noteController.text,
+                      ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD4AF37),
+                foregroundColor: const Color(0xFF1E0F0A),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: 3,
+              ),
+              child: Obx(
+                () => _controller.isLoading.value
+                    ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2, valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF1E0F0A))))
+                    : Text('SUBMIT FOR APPROVAL', style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1)),
               ),
             ),
           ),
           const SizedBox(height: 18),
 
-          // FULL NAME
-          _sectionTitle('FULL NAME', accentColor),
-          const SizedBox(height: 8),
-          _textField(
-            controller: controller.nameController,
-            hint: 'e.g. John Doe',
-            icon: Icons.person_outline_rounded,
-            primaryColor: primaryColor,
-          ),
-          const SizedBox(height: 16),
-
-          // EMAIL
-          _sectionTitle('EMAIL ADDRESS', accentColor),
-          const SizedBox(height: 8),
-          _textField(
-            controller: controller.emailController,
-            hint: 'abc@bakery.co.uk',
-            icon: Icons.email_outlined,
-            primaryColor: primaryColor,
-          ),
-          const SizedBox(height: 16),
-
-          // PASSWORD & CONFIRM PASSWORD
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionTitle('PASSWORD', accentColor),
-                    const SizedBox(height: 8),
-                    Obx(
-                      () => _passwordField(
-                        controller: controller.passwordController,
-                        isObscured: controller.obscurePassword.value,
-                        onToggle: () => controller.obscurePassword.toggle(),
-                        primaryColor: primaryColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _sectionTitle('CONFIRM', accentColor),
-                    const SizedBox(height: 8),
-                    Obx(
-                      () => _passwordField(
-                        controller: controller.confirmPasswordController,
-                        isObscured: controller.obscureConfirmPassword.value,
-                        onToggle: () =>
-                            controller.obscureConfirmPassword.toggle(),
-                        primaryColor: primaryColor,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // NOTE TO OWNER
-          _sectionTitle('NOTE TO OWNER (OPTIONAL)', accentColor),
-          const SizedBox(height: 8),
-          _textField(
-            controller: controller.noteController,
-            hint: 'Mention branch or role details...',
-            icon: Icons.edit_note_rounded,
-            primaryColor: primaryColor,
-          ),
-          const SizedBox(height: 24),
-
-          // SUBMIT BUTTON
-          _submitButton(controller, accentColor),
-          const SizedBox(height: 20),
-
-          // DIVIDER
-          Row(
-            children: [
-              const Expanded(child: Divider(color: Color(0xFFE2D6C9))),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Text(
-                  'ALREADY HAVE AN ACCOUNT?',
-                  style: GoogleFonts.outfit(
-                    color: const Color(0xFFAA9B8F),
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-              const Expanded(child: Divider(color: Color(0xFFE2D6C9))),
-            ],
-          ),
-          const SizedBox(height: 18),
-
-          // BACK TO LOGIN LINK
+          // Back to Login link
           Center(
             child: GestureDetector(
               onTap: () => Get.offAll(() => const LoginScreen()),
               child: Text(
                 'Back to Sign In',
-                style: GoogleFonts.outfit(
-                  color: const Color(0xFFA67C1E),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                ),
+                style: GoogleFonts.outfit(color: const Color(0xFFA67C1E), fontSize: 13, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -526,247 +338,57 @@ class SignUpScreen extends StatelessWidget {
     );
   }
 
-  // ============================================================
-  // ROLE CHOICE TAB
-  // ============================================================
-  Widget _roleChoiceTab(
-    UserRole role,
-    String label,
-    SignUpController controller,
-    Color accentColor,
-  ) {
-    final selected = controller.selectedRole.value == role;
-
+  Widget _roleChoiceTab(UserRole role, String label, Color accentColor) {
+    final selected = _controller.selectedRole.value == role;
     return Expanded(
       child: GestureDetector(
-        onTap: () => controller.selectedRole.value = role,
+        onTap: () => _controller.selectedRole.value = role,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 220),
+          duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            gradient: selected
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      accentColor,
-                      Color.alphaBlend(Colors.black12, accentColor),
-                    ],
-                  )
-                : null,
+            color: selected ? accentColor : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: accentColor.withValues(alpha: .20),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
-            style: GoogleFonts.outfit(
-              fontSize: 11,
-              fontWeight: selected ? FontWeight.w800 : FontWeight.w500,
-              color: selected
-                  ? const Color(0xFF2C1810)
-                  : const Color(0xFF806F63),
-            ),
+            style: GoogleFonts.outfit(fontSize: 12, fontWeight: selected ? FontWeight.bold : FontWeight.w500, color: selected ? const Color(0xFF1E0F0A) : Colors.grey.shade700),
           ),
         ),
       ),
     );
   }
 
-  // ============================================================
-  // FORM COMPONENTS
-  // ============================================================
-  Widget _textField({
-    required TextEditingController controller,
-    required String hint,
-    required IconData icon,
-    required Color primaryColor,
-  }) {
+  Widget _fieldLabel(String label, Color accentColor) {
+    return Row(
+      children: [
+        Container(width: 4, height: 4, decoration: BoxDecoration(color: accentColor, shape: BoxShape.circle)),
+        const SizedBox(width: 6),
+        Text(label, style: GoogleFonts.outfit(color: const Color(0xFFA67C1E), fontSize: 9, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+      ],
+    );
+  }
+
+  Widget _textField({required TextEditingController controller, required String hint, required IconData icon, required Color primaryColor}) {
     return TextField(
       controller: controller,
-      style: GoogleFonts.outfit(
-        color: const Color(0xFF2C1810),
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-      ),
+      style: GoogleFonts.outfit(fontSize: 13),
       decoration: _inputDecoration(hint, icon, primaryColor),
     );
   }
 
-  Widget _passwordField({
-    required TextEditingController controller,
-    required bool isObscured,
-    required VoidCallback onToggle,
-    required Color primaryColor,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: isObscured,
-      style: GoogleFonts.outfit(
-        color: const Color(0xFF2C1810),
-        fontSize: 13,
-        fontWeight: FontWeight.w500,
-      ),
-      decoration:
-          _inputDecoration(
-            '••••••••',
-            Icons.lock_outline_rounded,
-            primaryColor,
-          ).copyWith(
-            suffixIcon: IconButton(
-              onPressed: onToggle,
-              icon: Icon(
-                isObscured
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                color: const Color(0xFFA67C1E),
-                size: 18,
-              ),
-            ),
-          ),
-    );
-  }
-
-  InputDecoration _inputDecoration(
-    String hint,
-    IconData icon,
-    Color primaryColor,
-  ) {
+  InputDecoration _inputDecoration(String hint, IconData icon, Color primaryColor) {
     return InputDecoration(
       hintText: hint,
-      hintStyle: GoogleFonts.outfit(
-        color: const Color(0xFFAA9B8F),
-        fontSize: 12,
-      ),
-      prefixIcon: Icon(icon, color: const Color(0xFF9A8A7D), size: 19),
+      hintStyle: GoogleFonts.outfit(color: const Color(0xFFAA9B8F), fontSize: 12),
+      prefixIcon: Icon(icon, color: const Color(0xFF9A8A7D), size: 18),
       filled: true,
       fillColor: const Color(0xFFF8F3EB),
       contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE3D6C6)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFFE3D6C6)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide(color: primaryColor, width: 1.5),
-      ),
-    );
-  }
-
-  Widget _submitButton(SignUpController controller, Color accentColor) {
-    return SizedBox(
-      width: double.infinity,
-      height: 54,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFFF0CE72),
-              accentColor,
-              Color.alphaBlend(Colors.black12, accentColor),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [
-            BoxShadow(
-              color: accentColor.withValues(alpha: .25),
-              blurRadius: 22,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Obx(
-          () => ElevatedButton(
-            onPressed: controller.isLoading.value
-                ? null
-                : controller.handleSignUp,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              foregroundColor: const Color(0xFF2C1810),
-              shadowColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-            ),
-            child: controller.isLoading.value
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      color: Color(0xFF2C1810),
-                      strokeWidth: 2,
-                    ),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'SUBMIT REGISTRATION REQUEST',
-                        style: GoogleFonts.outfit(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.arrow_forward_rounded, size: 18),
-                    ],
-                  ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _sectionTitle(String text, Color accentColor) {
-    return Text(
-      text,
-      style: GoogleFonts.outfit(
-        color: const Color(0xFFA67C1E),
-        fontSize: 9,
-        fontWeight: FontWeight.w800,
-        letterSpacing: 1.6,
-      ),
-    );
-  }
-
-  Widget _feature(IconData icon, String text, Color accentColor) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 26,
-          height: 26,
-          decoration: BoxDecoration(
-            color: accentColor.withValues(alpha: .10),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: const Color(0xFFA67C1E), size: 13),
-        ),
-        const SizedBox(width: 7),
-        Text(
-          text,
-          style: GoogleFonts.outfit(
-            color: const Color(0xFF806F63),
-            fontSize: 11,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE3D6C6))),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE3D6C6))),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: primaryColor, width: 1.5)),
     );
   }
 
@@ -777,13 +399,7 @@ class SignUpScreen extends StatelessWidget {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: color.withValues(alpha: opacity),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: opacity),
-            blurRadius: 120,
-            spreadRadius: 20,
-          ),
-        ],
+        boxShadow: [BoxShadow(color: color.withValues(alpha: opacity), blurRadius: size * .7, spreadRadius: size * .2)],
       ),
     );
   }

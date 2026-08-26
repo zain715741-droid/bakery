@@ -16,12 +16,11 @@ class OrderFormController extends GetxController {
   final targetDate = DateTime.now().add(const Duration(days: 1)).obs;
   final orderItems = <OrderItem>[].obs;
   final notesController = TextEditingController();
+  final addressController = TextEditingController();
+  final postcodeController = TextEditingController();
 
-  @override
-  void onClose() {
-    notesController.dispose();
-    super.dispose();
-  }
+  final Rx<double?> deliveryLatitude = Rx<double?>(null);
+  final Rx<double?> deliveryLongitude = Rx<double?>(null);
 
   void resetForm() {
     selectedCustomerId.value = 'walk_in';
@@ -30,6 +29,21 @@ class OrderFormController extends GetxController {
     targetDate.value = DateTime.now().add(const Duration(days: 1));
     orderItems.clear();
     notesController.text = '';
+    addressController.text = '';
+    postcodeController.text = '';
+    deliveryLatitude.value = null;
+    deliveryLongitude.value = null;
+  }
+
+  void setDeliveryCoordinates(double lat, double lng, {String? formattedAddress, String? postcode}) {
+    deliveryLatitude.value = lat;
+    deliveryLongitude.value = lng;
+    if (formattedAddress != null && formattedAddress.isNotEmpty) {
+      addressController.text = formattedAddress;
+    }
+    if (postcode != null && postcode.isNotEmpty) {
+      postcodeController.text = postcode;
+    }
   }
 
   void submitOrder(BuildContext context) {
@@ -73,14 +87,23 @@ class OrderFormController extends GetxController {
       );
     }
 
+    final deliveryAddr = addressController.text.trim().isNotEmpty
+        ? addressController.text.trim()
+        : customer.address;
+    final deliveryPost = postcodeController.text.trim().isNotEmpty
+        ? postcodeController.text.trim()
+        : customer.postcode;
+
     final newOrder = OrderModel(
       id: 'ord_${DateTime.now().millisecondsSinceEpoch}',
       invoiceNumber: orderProvider.generateNextInvoiceNumber(),
       customerId: customer.id,
       customerName: customer.name,
       customerPhone: customer.phone,
-      customerAddress: customer.address,
-      customerPostcode: customer.postcode,
+      customerAddress: deliveryAddr,
+      customerPostcode: deliveryPost,
+      latitude: deliveryLatitude.value,
+      longitude: deliveryLongitude.value,
       items: List.from(orderItems),
       status: OrderStatus.pending,
       fulfillment: fulfillment.value,
