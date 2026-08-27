@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import '../models/user_model.dart';
 import '../providers/auth_provider.dart';
 import '../providers/branding_provider.dart';
+import '../services/database_service.dart';
 import '../views/shell_screen.dart';
 
 class LoginController extends GetxController {
@@ -49,7 +50,9 @@ class LoginController extends GetxController {
     isLoading.value = true;
 
     bool firebaseSuccess = false;
-    // 1. Try signing in via Firebase Authentication if email is properly formatted
+    User? firebaseUser;
+
+    // 1. Try signing in via Firebase Authentication
     if (trimmedEmail.contains('@') && trimmedEmail.contains('.')) {
       try {
         final cred = await FirebaseAuth.instance.signInWithEmailAndPassword(
@@ -58,6 +61,7 @@ class LoginController extends GetxController {
         );
         if (cred.user != null) {
           firebaseSuccess = true;
+          firebaseUser = cred.user;
         }
       } on FirebaseAuthException catch (e) {
         debugPrint("Firebase Auth sign in error code: ${e.code}");
@@ -80,14 +84,24 @@ class LoginController extends GetxController {
       }
     }
 
-    // 2. Check Database Users
+    // 2. Check Database Users (in-memory + direct Cloud Firestore lookup)
+    UserModel? user;
     final matching = auth.allUsers.where(
       (u) => u.email.toLowerCase() == trimmedEmail.toLowerCase(),
     );
 
     if (matching.isNotEmpty) {
-      var user = matching.first;
+      user = matching.first;
+    } else {
+      // Look up directly in Cloud Firestore (fixes fresh mobile browsers)
+      user = await DatabaseService.instance.fetchUserByEmail(trimmedEmail);
+      if (user != null) {
+        auth.addOrUpdateUserLocally(user);
+      }
+    }
 
+    // 3. User found in database or cloud
+    if (user != null) {
       // STRICT PASSWORD VERIFICATION
       if (user.password != null && user.password!.isNotEmpty) {
         if (user.password != trimmedPassword && !firebaseSuccess) {
@@ -140,11 +154,30 @@ class LoginController extends GetxController {
       return;
     }
 
-    // 3. First Setup Bootstrap (Only if ZERO users exist in whole database)
+    // 4. Authenticated in Firebase Auth, but user document was missing from Firestore
+    if (firebaseSuccess && firebaseUser != null) {
+      final newCloudUser = UserModel(
+        id: firebaseUser.uid.isNotEmpty ? firebaseUser.uid : 'u_${DateTime.now().millisecondsSinceEpoch}',
+        email: trimmedEmail.toLowerCase(),
+        password: trimmedPassword,
+        name: firebaseUser.displayName ?? 'Bakery Owner',
+        role: selectedRole.value,
+        isApproved: true,
+        createdAt: DateTime.now(),
+      );
+      await DatabaseService.instance.saveDocument('users', newCloudUser.id, newCloudUser.toMap());
+      auth.addOrUpdateUserLocally(newCloudUser);
+      await auth.loginAsUser(newCloudUser);
+      isLoading.value = false;
+      Get.offAll(() => const ShellScreen(), routeName: '/ShellScreen');
+      return;
+    }
+
+    // 5. First Setup Bootstrap (Only if ZERO users exist in database)
     if (auth.allUsers.isEmpty) {
       final ownerUser = UserModel(
         id: 'u_${DateTime.now().millisecondsSinceEpoch}',
-        email: trimmedEmail,
+        email: trimmedEmail.toLowerCase(),
         password: trimmedPassword,
         name: 'Bakery Owner',
         role: UserRole.owner,
@@ -158,7 +191,7 @@ class LoginController extends GetxController {
       return;
     }
 
-    // 4. Account not found
+    // 6. Account not found
     isLoading.value = false;
     Get.snackbar(
       "Account Not Found",

@@ -33,6 +33,16 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void addOrUpdateUserLocally(UserModel user) {
+    final idx = _allUsers.indexWhere((u) => u.id == user.id || u.email.toLowerCase() == user.email.toLowerCase());
+    if (idx != -1) {
+      _allUsers[idx] = user;
+    } else {
+      _allUsers.add(user);
+    }
+    notifyListeners();
+  }
+
   Future<void> restoreSavedSession() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -41,6 +51,15 @@ class AuthProvider extends ChangeNotifier {
         final matching = _allUsers.where((u) => u.id == savedUserId && u.isApproved);
         if (matching.isNotEmpty) {
           _currentUser = matching.first;
+          notifyListeners();
+          return;
+        }
+
+        // Fallback: check directly from Firestore
+        final cloudUser = await DatabaseService.instance.fetchUserById(savedUserId);
+        if (cloudUser != null && cloudUser.isApproved) {
+          _currentUser = cloudUser;
+          addOrUpdateUserLocally(cloudUser);
           notifyListeners();
           return;
         }

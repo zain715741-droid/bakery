@@ -240,7 +240,55 @@ class DatabaseService {
     }
   }
 
+  Future<UserModel?> fetchUserByEmail(String email) async {
+    final cleanEmail = email.trim().toLowerCase();
+    final fs = _firestore;
+    if (fs != null) {
+      try {
+        final querySnap = await fs.collection('users').get().timeout(const Duration(seconds: 6));
+        for (final doc in querySnap.docs) {
+          final data = doc.data();
+          if ((data['email'] as String?)?.toLowerCase() == cleanEmail) {
+            return UserModel.fromMap(data);
+          }
+        }
+      } catch (e) {
+        debugPrint("fetchUserByEmail error: $e");
+      }
+    }
+    return null;
+  }
+
+  Future<UserModel?> fetchUserById(String docId) async {
+    final fs = _firestore;
+    if (fs != null) {
+      try {
+        final docSnap = await fs.collection('users').doc(docId).get().timeout(const Duration(seconds: 6));
+        if (docSnap.exists && docSnap.data() != null) {
+          return UserModel.fromMap(docSnap.data()!);
+        }
+      } catch (e) {
+        debugPrint("fetchUserById error: $e");
+      }
+    }
+    return null;
+  }
+
   // --- Real-time Live Firestore Streams ---
+
+  Stream<List<UserModel>> get usersStream {
+    final fs = _firestore;
+    if (fs == null) return const Stream.empty();
+    try {
+      return fs.collection('users').snapshots().map((snapshot) {
+        return snapshot.docs.map((doc) => UserModel.fromMap(doc.data())).toList();
+      }).handleError((e) {
+        debugPrint("Error in usersStream: $e");
+      });
+    } catch (e) {
+      return const Stream.empty();
+    }
+  }
 
   Stream<List<RecipeModel>> get recipesStream {
     final fs = _firestore;
